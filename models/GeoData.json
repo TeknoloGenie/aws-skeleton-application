@@ -1,0 +1,47 @@
+{
+  "name": "GeoData",
+  "properties": {
+    "id": {
+      "type": "ID",
+      "required": true
+    },
+    "address": {
+      "type": "String",
+      "required": true
+    },
+    "latitude": {
+      "type": "Float",
+      "required": false
+    },
+    "longitude": {
+      "type": "Float",
+      "required": false
+    },
+    "country": {
+      "type": "String",
+      "required": false
+    },
+    "city": {
+      "type": "String",
+      "required": false
+    }
+  },
+  "dataSource": {
+    "type": "thirdPartyApi",
+    "endpoint": "https://api.geocoding-service.com/v1",
+    "limits": {
+      "frequencyInSeconds": 60,
+      "limit": 100
+    }
+  },
+  "accessControl": {
+    "default": "allow",
+    "rules": [
+      {
+        "allow": "read",
+        "groups": ["users", "admins"]
+      }
+    ]
+  },
+  "enableSubscriptions": false
+}
