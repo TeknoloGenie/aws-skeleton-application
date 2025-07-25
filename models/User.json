@@ -1,0 +1,71 @@
+{
+  "name": "User",
+  "properties": {
+    "id": {
+      "type": "ID",
+      "required": true
+    },
+    "userId": {
+      "type": "ID",
+      "required": true,
+      "isOwner": true
+    },
+    "email": {
+      "type": "String",
+      "required": true
+    },
+    "name": {
+      "type": "String",
+      "required": true
+    },
+    "bio": {
+      "type": "String",
+      "required": false
+    },
+    "createdAt": {
+      "type": "AWSDateTime",
+      "required": true
+    },
+    "updatedAt": {
+      "type": "AWSDateTime",
+      "required": true
+    }
+  },
+  "dataSource": {
+    "type": "database",
+    "engine": "nosql"
+  },
+  "accessControl": {
+    "default": "deny",
+    "rules": [
+      {
+        "allow": "create",
+        "groups": ["users"]
+      },
+      {
+        "allow": "read",
+        "groups": ["users", "admins"]
+      },
+      {
+        "allow": "update",
+        "owner": true
+      },
+      {
+        "allow": "delete",
+        "groups": ["admins"]
+      }
+    ]
+  },
+  "relationships": {
+    "posts": {
+      "type": "hasMany",
+      "target": "Post",
+      "foreignKey": "userId"
+    }
+  },
+  "hooks": {
+    "afterCreate": "send-welcome-email-function",
+    "beforeDelete": "cleanup-user-data-function"
+  },
+  "enableSubscriptions": true
+}

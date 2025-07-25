@@ -1,0 +1,72 @@
+{
+  "name": "Post",
+  "properties": {
+    "id": {
+      "type": "ID",
+      "required": true
+    },
+    "title": {
+      "type": "String",
+      "required": true
+    },
+    "content": {
+      "type": "String",
+      "required": true
+    },
+    "userId": {
+      "type": "ID",
+      "required": true,
+      "isOwner": true
+    },
+    "published": {
+      "type": "Boolean",
+      "required": false,
+      "defaultValue": false
+    },
+    "createdAt": {
+      "type": "AWSDateTime",
+      "required": true
+    },
+    "updatedAt": {
+      "type": "AWSDateTime",
+      "required": true
+    }
+  },
+  "dataSource": {
+    "type": "database",
+    "engine": "sql"
+  },
+  "accessControl": {
+    "default": "deny",
+    "rules": [
+      {
+        "allow": "create",
+        "groups": ["users"]
+      },
+      {
+        "allow": "read",
+        "groups": ["users", "admins"]
+      },
+      {
+        "allow": "update",
+        "owner": true
+      },
+      {
+        "allow": "delete",
+        "owner": true
+      }
+    ]
+  },
+  "relationships": {
+    "user": {
+      "type": "belongsTo",
+      "target": "User",
+      "foreignKey": "userId"
+    }
+  },
+  "hooks": {
+    "afterCreate": "notify-followers-function",
+    "afterUpdate": "update-search-index-function"
+  },
+  "enableSubscriptions": true
+}

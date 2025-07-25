@@ -1,0 +1,14 @@
+{
+  "name": "api-rate-limiter",
+  "version": "1.0.0",
+  "description": "Lambda function for API rate limiting",
+  "main": "api-rate-limiter.js",
+  "dependencies": {
+    "aws-sdk": "^2.1400.0"
+  },
+  "devDependencies": {
+    "@types/aws-lambda": "^8.10.119",
+    "@types/node": "^18.0.0",
+    "typescript": "^5.0.0"
+  }
+}

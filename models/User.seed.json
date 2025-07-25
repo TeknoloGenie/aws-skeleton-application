@@ -1,0 +1,26 @@
+[
+  {
+    "id": "user-1",
+    "email": "john.doe@example.com",
+    "name": "John Doe",
+    "bio": "Software developer and tech enthusiast",
+    "createdAt": "2024-01-01T00:00:00Z",
+    "updatedAt": "2024-01-01T00:00:00Z"
+  },
+  {
+    "id": "user-2",
+    "email": "jane.smith@example.com",
+    "name": "Jane Smith",
+    "bio": "Product manager with a passion for user experience",
+    "createdAt": "2024-01-02T00:00:00Z",
+    "updatedAt": "2024-01-02T00:00:00Z"
+  },
+  {
+    "id": "user-3",
+    "email": "admin@example.com",
+    "name": "Admin User",
+    "bio": "System administrator",
+    "createdAt": "2024-01-01T00:00:00Z",
+    "updatedAt": "2024-01-01T00:00:00Z"
+  }
+]

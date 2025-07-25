@@ -1,0 +1,29 @@
+[
+  {
+    "id": "post-1",
+    "title": "Getting Started with AWS CDK",
+    "content": "AWS CDK is a powerful tool for defining cloud infrastructure using familiar programming languages...",
+    "userId": "user-1",
+    "published": true,
+    "createdAt": "2024-01-15T10:00:00Z",
+    "updatedAt": "2024-01-15T10:00:00Z"
+  },
+  {
+    "id": "post-2",
+    "title": "Building Scalable APIs with AppSync",
+    "content": "AWS AppSync provides a managed GraphQL service that makes it easy to build scalable APIs...",
+    "userId": "user-1",
+    "published": true,
+    "createdAt": "2024-01-20T14:30:00Z",
+    "updatedAt": "2024-01-20T14:30:00Z"
+  },
+  {
+    "id": "post-3",
+    "title": "User Experience Best Practices",
+    "content": "Creating great user experiences requires understanding your users and their needs...",
+    "userId": "user-2",
+    "published": false,
+    "createdAt": "2024-01-25T09:15:00Z",
+    "updatedAt": "2024-01-25T09:15:00Z"
+  }
+]
