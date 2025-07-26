@@ -46,7 +46,7 @@
 </template>
 
 <script setup lang="ts">
-import { AmplifyAuthenticator } from '@aws-amplify/ui-vue'
+import AmplifyAuthenticator from '@aws-amplify/ui-vue'
 import { useRouter } from 'vue-router'
 import { onMounted } from 'vue'
 import { Auth } from 'aws-amplify'
