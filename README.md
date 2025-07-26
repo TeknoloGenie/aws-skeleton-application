@@ -58,11 +58,26 @@ The AWS Application Accelerator Framework is a comprehensive solution that allow
    ```
 
 4. **Deploy the application with frontend configuration**
-   ```bash
-   # Deploy backend and generate frontend config
-   npm run deploy:with-frontend
    
-   # Or deploy manually
+   **Cross-platform (recommended):**
+   ```bash
+   npm run deploy:with-frontend
+   ```
+   
+   **Platform-specific alternatives:**
+   ```bash
+   # Linux/macOS
+   npm run deploy:with-frontend:bash
+   
+   # Windows Command Prompt
+   npm run deploy:with-frontend:bat
+   
+   # Windows PowerShell
+   npm run deploy:with-frontend:ps1
+   
+   # Manual deployment
+   cdk deploy MyApp-dev --context appName=MyApp --context stage=dev
+   ```
    cdk deploy MyApp-dev --context appName=MyApp --context stage=dev
    ```
 

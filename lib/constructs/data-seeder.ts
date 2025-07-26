@@ -24,8 +24,8 @@ export class DataSeederConstruct extends Construct {
     const seederFunction = new lambda.Function(this, 'SeederFunction', {
       functionName: `${props.appName}-${props.stage}-data-seeder`,
       runtime: lambda.Runtime.NODEJS_18_X,
-      handler: 'index.handler',
-      code: lambda.Code.fromInline(this.generateSeederCode(props)),
+      handler: 'data-seeder.handler',
+      code: lambda.Code.fromAsset('lib/lambda'),
       timeout: cdk.Duration.minutes(5),
       environment: {
         APP_NAME: props.appName,
@@ -91,11 +91,13 @@ export class DataSeederConstruct extends Construct {
 
   private generateSeederCode(props: DataSeederConstructProps): string {
     return `
-const AWS = require('aws-sdk');
-const dynamodb = new AWS.DynamoDB.DocumentClient();
-const rdsData = new AWS.RDSDataService();
-const fs = require('fs');
-const path = require('path');
+const { DynamoDBClient } = require('@aws-sdk/client-dynamodb');
+const { DynamoDBDocumentClient, PutCommand, ScanCommand } = require('@aws-sdk/lib-dynamodb');
+const { RDSDataClient, ExecuteStatementCommand } = require('@aws-sdk/client-rds-data');
+
+const dynamoClient = new DynamoDBClient({});
+const dynamodb = DynamoDBDocumentClient.from(dynamoClient);
+const rdsData = new RDSDataClient({});
 
 exports.handler = async (event) => {
   console.log('Data seeder event:', JSON.stringify(event, null, 2));
@@ -141,7 +143,7 @@ async function seedDynamoDB(modelName, records) {
       TableName: tableName,
       Item: {
         ...record,
-        id: record.id || require('uuid').v4(),
+        id: record.id || require('crypto').randomUUID(),
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       },
@@ -149,10 +151,10 @@ async function seedDynamoDB(modelName, records) {
     };
 
     try {
-      await dynamodb.put(params).promise();
+      await dynamodb.send(new PutCommand(params));
       console.log(\`Inserted record with id: \${params.Item.id}\`);
     } catch (error) {
-      if (error.code === 'ConditionalCheckFailedException') {
+      if (error.name === 'ConditionalCheckFailedException') {
         console.log(\`Record with id \${params.Item.id} already exists, skipping\`);
       } else {
         throw error;
@@ -188,7 +190,7 @@ async function seedRDS(modelName, records, model) {
     };
 
     try {
-      await rdsData.executeStatement(params).promise();
+      await rdsData.send(new ExecuteStatementCommand(params));
       console.log(\`Inserted record into \${tableName}\`);
     } catch (error) {
       console.error(\`Error inserting into \${tableName}:\`, error);

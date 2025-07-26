@@ -10,7 +10,10 @@
     "test": "jest",
     "cdk": "cdk",
     "deploy": "cdk deploy",
-    "deploy:with-frontend": "./scripts/deploy-with-frontend.sh",
+    "deploy:with-frontend": "node scripts/deploy-with-frontend.js",
+    "deploy:with-frontend:bash": "./scripts/deploy-with-frontend.sh",
+    "deploy:with-frontend:bat": "scripts\\deploy-with-frontend.bat",
+    "deploy:with-frontend:ps1": "powershell -ExecutionPolicy Bypass -File scripts/deploy-with-frontend.ps1",
     "destroy": "cdk destroy",
     "synth": "cdk synth",
     "diff": "cdk diff",
@@ -22,9 +25,9 @@
     "frontend:install": "cd frontend && npm install"
   },
   "devDependencies": {
+    "@types/aws-lambda": "^8.10.130",
     "@types/jest": "^29.5.5",
     "@types/node": "20.6.2",
-    "@types/aws-lambda": "^8.10.130",
     "@typescript-eslint/eslint-plugin": "^6.7.0",
     "@typescript-eslint/parser": "^6.7.0",
     "eslint": "^8.49.0",
@@ -35,14 +38,17 @@
     "typescript": "~5.2.2"
   },
   "dependencies": {
+    "@aws-cdk/aws-appsync-alpha": "2.59.0-alpha.0",
+    "@aws-sdk/client-dynamodb": "^3.848.0",
+    "@aws-sdk/client-rds-data": "^3.848.0",
+    "@aws-sdk/client-s3": "^3.850.0",
+    "@aws-sdk/lib-dynamodb": "^3.850.0",
+    "@types/uuid": "^9.0.4",
     "aws-cdk-lib": "2.100.0",
     "constructs": "^10.0.0",
-    "@aws-cdk/aws-appsync-alpha": "2.59.0-alpha.0",
-    "aws-sdk": "^2.1490.0",
     "db-migrate": "^0.11.14",
     "db-migrate-mysql": "^2.2.0",
-    "uuid": "^9.0.1",
-    "@types/uuid": "^9.0.4"
+    "uuid": "^9.0.1"
   },
   "repository": {
     "type": "git",

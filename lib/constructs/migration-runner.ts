@@ -69,8 +69,8 @@ export class MigrationRunnerConstruct extends Construct {
 
   private generateMigrationCode(props: MigrationRunnerConstructProps): string {
     return `
-const AWS = require('aws-sdk');
-const rdsData = new AWS.RDSDataService();
+const { RDSDataClient, ExecuteStatementCommand } = require('@aws-sdk/client-rds-data');
+const rdsData = new RDSDataClient({});
 const fs = require('fs');
 const path = require('path');
 
@@ -116,7 +116,7 @@ async function executeSQL(sql, parameters = []) {
     parameters: parameters,
   };
 
-  const result = await rdsData.executeStatement(params).promise();
+  const result = await rdsData.send(new ExecuteStatementCommand(params));
   return result;
 }
 

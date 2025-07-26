@@ -31,7 +31,6 @@ export class AwsExportsGeneratorConstruct extends Construct {
         USER_POOL_CLIENT_ID: props.userPoolClient.userPoolClientId,
         GRAPHQL_API_URL: props.api.graphqlUrl,
         GRAPHQL_API_ID: props.api.apiId,
-        AWS_REGION: cdk.Stack.of(this).region,
         APP_NAME: props.appName,
         STAGE: props.stage,
         MODELS: JSON.stringify(props.models.map(m => ({

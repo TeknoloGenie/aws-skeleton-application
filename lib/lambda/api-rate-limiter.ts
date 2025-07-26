@@ -1,5 +1,7 @@
 import { SQSEvent, SQSRecord } from 'aws-lambda';
-import * as AWS from 'aws-sdk';
+import { SecretsManagerClient, GetSecretValueCommand } from '@aws-sdk/client-secrets-manager';
+import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
+import { DynamoDBDocumentClient, PutCommand, GetCommand } from '@aws-sdk/lib-dynamodb';
 import * as https from 'https';
 import * as http from 'http';
 
@@ -33,8 +35,9 @@ interface JobResult {
   completedAt?: string;
 }
 
-const secretsManager = new AWS.SecretsManager();
-const dynamodb = new AWS.DynamoDB.DocumentClient();
+const secretsManagerClient = new SecretsManagerClient({});
+const dynamoClient = new DynamoDBClient({});
+const dynamodb = DynamoDBDocumentClient.from(dynamoClient);
 
 // In-memory rate limiting store (in production, use Redis or DynamoDB)
 const rateLimitStore = new Map<string, { count: number; resetTime: number }>();
@@ -51,7 +54,7 @@ export const handler = async (event: SQSEvent): Promise<void> => {
   // Get API credentials from Secrets Manager
   let credentials: ApiCredentials = {};
   try {
-    const secretResponse = await secretsManager.getSecretValue({ SecretId: secretName }).promise();
+    const secretResponse = await secretsManagerClient.send(new GetSecretValueCommand({ SecretId: secretName }));
     if (secretResponse.SecretString) {
       credentials = JSON.parse(secretResponse.SecretString);
     }
@@ -129,13 +132,13 @@ async function processApiRequest(
 
 async function storeJobResult(tableName: string, jobResult: JobResult): Promise<void> {
   try {
-    await dynamodb.put({
+    await dynamodb.send(new PutCommand({
       TableName: tableName,
       Item: {
         ...jobResult,
         ttl: Math.floor(Date.now() / 1000) + (24 * 60 * 60) // 24 hour TTL
       }
-    }).promise();
+    }));
     
     console.log(`Stored job result for ${jobResult.requestId}`);
   } catch (error) {
