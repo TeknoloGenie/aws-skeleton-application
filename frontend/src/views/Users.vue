@@ -100,7 +100,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { onMounted, ref } from 'vue'
 import { apolloClient, getCurrentUser } from '../graphql/client'
 import { listUsers } from '../graphql/queries'
 
@@ -157,11 +157,11 @@ const loadCurrentUser = async () => {
 }
 
 onMounted(async () => {
-  await Promise.all([
-    loadUsers(),
-    loadCurrentUser()
-  ])
-})
+  try {
+    await Promise.all([
+      loadUsers(),
+      loadCurrentUser()
+    ])
   } catch (error) {
     console.error('Error loading users:', error)
     // Use mock data for demonstration
@@ -171,29 +171,26 @@ onMounted(async () => {
         name: 'John Doe',
         email: 'john.doe@example.com',
         bio: 'Software developer and tech enthusiast',
-        createdAt: '2024-01-01T00:00:00Z'
+        createdAt: '2024-01-01T00:00:00Z',
+        updatedAt: '2024-01-01T00:00:00Z'
       },
       {
         id: 'user-2',
         name: 'Jane Smith',
         email: 'jane.smith@example.com',
         bio: 'Product manager with a passion for user experience',
-        createdAt: '2024-01-02T00:00:00Z'
+        createdAt: '2024-01-02T00:00:00Z',
+        updatedAt: '2024-01-02T00:00:00Z'
       },
       {
         id: 'user-3',
         name: 'Admin User',
         email: 'admin@example.com',
         bio: 'System administrator',
-        createdAt: '2024-01-01T00:00:00Z'
+        createdAt: '2024-01-01T00:00:00Z',
+        updatedAt: '2024-01-01T00:00:00Z'
       }
     ]
-  } finally {
-    loading.value = false
   }
-}
-
-onMounted(() => {
-  loadUsers()
 })
 </script>

@@ -34,7 +34,7 @@
   },
   "dataSource": {
     "type": "database",
-    "engine": "sql"
+    "engine": "nosql"
   },
   "accessControl": {
     "default": "deny",

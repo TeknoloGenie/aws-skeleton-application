@@ -180,7 +180,13 @@ export class AppStack extends cdk.Stack {
 
   private createAppSyncApi(props: AppStackProps): appsync.GraphqlApi {
     // Generate schema from models
-    const schema = this.schemaGenerator.generateSchema(this.models);
+    const schemaContent = this.schemaGenerator.generateSchema(this.models);
+    
+    // Write schema to file for AppSync to use
+    const fs = require('fs');
+    const path = require('path');
+    const schemaPath = path.join(process.cwd(), 'schema.graphql');
+    fs.writeFileSync(schemaPath, schemaContent, 'utf8');
 
     const api = new appsync.GraphqlApi(this, 'Api', {
       name: `${props.appName}-${props.stage}-api`,
@@ -199,10 +205,6 @@ export class AppStack extends cdk.Stack {
         retention: logs.RetentionDays.ONE_WEEK,
       },
     });
-
-    // Write schema to file for CDK to use
-    const fs = require('fs');
-    fs.writeFileSync('schema.graphql', schema);
 
     return api;
   }

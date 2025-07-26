@@ -19,10 +19,13 @@ export const handler = async (
       USER_POOL_CLIENT_ID,
       GRAPHQL_API_URL,
       GRAPHQL_API_ID,
-      AWS_REGION,
       APP_NAME,
       STAGE,
       MODELS,
+    } = process.env;
+
+    // AWS_REGION is automatically provided by Lambda runtime
+    const AWS_REGION = process.env.AWS_REGION;
     } = process.env;
 
     if (!USER_POOL_ID || !USER_POOL_CLIENT_ID || !GRAPHQL_API_URL || !AWS_REGION) {

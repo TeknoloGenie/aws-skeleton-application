@@ -1,5 +1,4 @@
 import { DynamoDBStreamEvent, DynamoDBRecord } from 'aws-lambda';
-import * as AWS from 'aws-sdk';
 
 interface JobResult {
   requestId: string;
@@ -8,10 +7,6 @@ interface JobResult {
   error?: string;
   completedAt?: string;
 }
-
-const appsync = new AWS.AppSync({
-  region: process.env.APPSYNC_REGION!,
-});
 
 export const handler = async (event: DynamoDBStreamEvent): Promise<void> => {
   const endpoint = process.env.APPSYNC_ENDPOINT!;
