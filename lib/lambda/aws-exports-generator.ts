@@ -26,7 +26,6 @@ export const handler = async (
 
     // AWS_REGION is automatically provided by Lambda runtime
     const AWS_REGION = process.env.AWS_REGION;
-    } = process.env;
 
     if (!USER_POOL_ID || !USER_POOL_CLIENT_ID || !GRAPHQL_API_URL || !AWS_REGION) {
       throw new Error('Missing required environment variables');

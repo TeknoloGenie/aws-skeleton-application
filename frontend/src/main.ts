@@ -1,7 +1,7 @@
 import { createApp } from 'vue'
 import { createRouter, createWebHistory } from 'vue-router'
 import { Amplify } from 'aws-amplify'
-import { AmplifyPlugin } from '@aws-amplify/ui-vue'
+import AmplifyPlugin from '@aws-amplify/ui-vue'
 import App from './App.vue'
 import './style.css'
 
