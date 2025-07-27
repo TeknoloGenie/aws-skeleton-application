@@ -20,9 +20,16 @@
     "bootstrap": "cdk bootstrap",
     "lint": "eslint . --ext .ts",
     "lint:fix": "eslint . --ext .ts --fix",
-    "frontend:dev": "cd frontend && npm run dev",
-    "frontend:build": "cd frontend && npm run build",
-    "frontend:install": "cd frontend && npm install"
+    "frontend:vue:dev": "cd frontend/vue && npm run dev",
+    "frontend:vue:build": "cd frontend/vue && npm run build",
+    "frontend:vue:install": "cd frontend/vue && npm install",
+    "frontend:react:dev": "cd frontend/react && npm run dev",
+    "frontend:react:build": "cd frontend/react && npm run build",
+    "frontend:react:install": "cd frontend/react && npm install",
+    "frontend:angular:dev": "cd frontend/angular && npm start",
+    "frontend:angular:build": "cd frontend/angular && npm run build",
+    "frontend:angular:install": "cd frontend/angular && npm install",
+    "frontend:install:all": "npm run frontend:vue:install && npm run frontend:react:install && npm run frontend:angular:install"
   },
   "devDependencies": {
     "@types/aws-lambda": "^8.10.130",
