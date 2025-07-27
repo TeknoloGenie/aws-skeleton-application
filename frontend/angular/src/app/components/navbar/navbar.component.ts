@@ -1,9 +1,8 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
-import { getCurrentUser, signOut as amplifySignOut } from '@aws-amplify/auth';
+import { getCurrentUser, signOut as amplifySignOut, fetchAuthSession } from '@aws-amplify/auth';
 import { AuthenticatorService } from '@aws-amplify/ui-angular';
-import { Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-navbar',
@@ -63,11 +62,11 @@ import { Subscription } from 'rxjs';
         <div class="flex items-center justify-between">
           <div class="flex items-center">
             <div class="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
-              <span class="text-white text-sm font-medium">{{ userInitials }}</span>
+              <span class="text-white text-sm font-medium">{{ userInitials || '?' }}</span>
             </div>
             <div class="ml-3">
-              <p class="text-sm font-medium text-gray-700">{{ userName }}</p>
-              <p class="text-xs text-gray-500">{{ userEmail }}</p>
+              <p class="text-sm font-medium text-gray-700">{{ displayName || 'Loading...' }}</p>
+              <p class="text-xs text-gray-500">{{ userEmail || '' }}</p>
             </div>
           </div>
           <button
@@ -93,7 +92,8 @@ export class NavbarComponent implements OnInit, OnDestroy {
   userName = '';
   userEmail = '';
   userInitials = '';
-  private authSubscription?: Subscription;
+  displayName = '';
+  private authSubscription: any; // Use any type to avoid Subscription type conflicts
 
   constructor(
     private router: Router,
@@ -101,13 +101,19 @@ export class NavbarComponent implements OnInit, OnDestroy {
   ) {}
 
   async ngOnInit() {
-    // Load initial user info
-    await this.loadUserInfo();
+    // Wait a bit for authentication to settle
+    setTimeout(async () => {
+      await this.loadUserInfo();
+    }, 500);
 
     // Subscribe to authentication state changes
     this.authSubscription = this.authenticator.subscribe((authState) => {
+      console.log('Auth state changed:', authState.authStatus);
       if (authState.authStatus === 'authenticated') {
-        this.loadUserInfo();
+        // Add a small delay to ensure user data is available
+        setTimeout(() => {
+          this.loadUserInfo();
+        }, 100);
       } else if (authState.authStatus === 'unauthenticated') {
         this.clearUserInfo();
       }
@@ -122,10 +128,23 @@ export class NavbarComponent implements OnInit, OnDestroy {
 
   private async loadUserInfo() {
     try {
+      // First check if we have a valid session
+      const session = await fetchAuthSession();
+      if (!session.tokens?.accessToken) {
+        console.log('No valid session found');
+        return;
+      }
+
       const user = await getCurrentUser();
+      console.log('User info loaded:', user);
+      
+      // Try to get the best display name
       this.userName = user.username || '';
-      this.userEmail = user.signInDetails?.loginId || '';
-      this.userInitials = this.generateInitials(this.userName || this.userEmail);
+      this.userEmail = user.signInDetails?.loginId || user.username || '';
+      this.displayName = this.userEmail || this.userName || 'User';
+      this.userInitials = this.generateInitials(this.displayName);
+      
+      console.log('Display name:', this.displayName, 'Initials:', this.userInitials);
     } catch (error) {
       console.error('Error getting user info:', error);
       this.clearUserInfo();
@@ -136,6 +155,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
     this.userName = '';
     this.userEmail = '';
     this.userInitials = '';
+    this.displayName = '';
   }
 
   private generateInitials(name: string): string {
