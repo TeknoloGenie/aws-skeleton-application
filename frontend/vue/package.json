@@ -12,8 +12,8 @@
   "dependencies": {
     "vue": "^3.3.4",
     "vue-router": "^4.2.4",
-    "@aws-amplify/ui-vue": "^3.1.0",
-    "aws-amplify": "^5.3.0",
+    "@aws-amplify/ui-vue": "^4.3.3",
+    "aws-amplify": "^6.0.0",
     "@apollo/client": "^3.8.0",
     "graphql": "^16.8.0",
     "graphql-tag": "^2.12.6"
