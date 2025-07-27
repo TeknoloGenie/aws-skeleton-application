@@ -1,7 +1,7 @@
 import { ApolloClient, InMemoryCache, createHttpLink, from } from '@apollo/client/core';
 import { setContext } from '@apollo/client/link/context';
 import { onError } from '@apollo/client/link/error';
-import { Auth } from 'aws-amplify';
+import { fetchAuthSession, getCurrentUser as amplifyGetCurrentUser, signOut as amplifySignOut } from '@aws-amplify/auth';
 
 // Import AWS configuration
 let awsExports: any;
@@ -23,9 +23,9 @@ const httpLink = createHttpLink({
 // Authentication link
 const authLink = setContext(async (_, { headers }) => {
   try {
-    // Get the current user's JWT token
-    const user = await Auth.currentAuthenticatedUser();
-    const token = user.signInUserSession?.getIdToken().getJwtToken();
+    // Get the current user session using Amplify v6 API
+    const session = await fetchAuthSession();
+    const token = session.tokens?.idToken?.toString();
     
     return {
       headers: {
@@ -123,8 +123,8 @@ export const createSubscriptionClient = () => {
 // Helper function to check if user is authenticated
 export const isAuthenticated = async (): Promise<boolean> => {
   try {
-    await Auth.currentAuthenticatedUser();
-    return true;
+    const session = await fetchAuthSession();
+    return !!session.tokens?.accessToken;
   } catch {
     return false;
   }
@@ -133,12 +133,15 @@ export const isAuthenticated = async (): Promise<boolean> => {
 // Helper function to get current user info
 export const getCurrentUser = async () => {
   try {
-    const user = await Auth.currentAuthenticatedUser();
+    const user = await amplifyGetCurrentUser();
+    const session = await fetchAuthSession();
+    const idToken = session.tokens?.idToken;
+    
     return {
-      id: user.attributes.sub,
-      email: user.attributes.email,
-      name: user.attributes.name || user.username,
-      groups: user.signInUserSession?.getIdToken().payload['cognito:groups'] || [],
+      id: user.userId,
+      email: user.signInDetails?.loginId || '',
+      name: user.username,
+      groups: idToken?.payload['cognito:groups'] || [],
     };
   } catch (error) {
     throw new Error('No authenticated user found');
@@ -148,7 +151,7 @@ export const getCurrentUser = async () => {
 // Helper function to sign out
 export const signOut = async () => {
   try {
-    await Auth.signOut();
+    await amplifySignOut();
     // Clear Apollo cache
     await apolloClient.clearStore();
     window.location.href = '/login';

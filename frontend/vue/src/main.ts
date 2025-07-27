@@ -1,7 +1,8 @@
 import { createApp } from 'vue'
 import { createRouter, createWebHistory } from 'vue-router'
 import { Amplify } from 'aws-amplify'
-import AmplifyPlugin from '@aws-amplify/ui-vue'
+import AmplifyUIVue from '@aws-amplify/ui-vue'
+import { fetchAuthSession } from '@aws-amplify/auth'
 import App from './App.vue'
 import './style.css'
 
@@ -55,22 +56,26 @@ const router = createRouter({
   routes
 })
 
-// Navigation guard for authentication
+// Navigation guard for authentication using Amplify v6
 router.beforeEach(async (to, from, next) => {
   if (to.meta.requiresAuth) {
     try {
-      const { Auth } = await import('aws-amplify')
-      await Auth.currentAuthenticatedUser()
-      next()
+      const session = await fetchAuthSession();
+      if (session.tokens?.accessToken) {
+        next();
+      } else {
+        next('/login');
+      }
     } catch (error) {
-      next('/login')
+      console.log('Authentication check failed:', error);
+      next('/login');
     }
   } else {
-    next()
+    next();
   }
 })
 
 const app = createApp(App)
 app.use(router)
-app.use(AmplifyPlugin)
+app.use(AmplifyUIVue)
 app.mount('#app')

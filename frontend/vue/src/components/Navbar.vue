@@ -76,7 +76,7 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { Auth } from 'aws-amplify'
+import { getCurrentUser, signOut as amplifySignOut } from '@aws-amplify/auth'
 
 const router = useRouter()
 const userName = ref('')
@@ -92,7 +92,7 @@ const userInitials = computed(() => {
 
 const signOut = async () => {
   try {
-    await Auth.signOut()
+    await amplifySignOut()
     router.push('/login')
   } catch (error) {
     console.error('Error signing out:', error)
@@ -101,9 +101,9 @@ const signOut = async () => {
 
 onMounted(async () => {
   try {
-    const user = await Auth.currentAuthenticatedUser()
-    userName.value = user.attributes.name || user.username
-    userEmail.value = user.attributes.email || ''
+    const user = await getCurrentUser()
+    userName.value = user.username || ''
+    userEmail.value = user.signInDetails?.loginId || ''
   } catch (error) {
     console.error('Error getting user info:', error)
   }

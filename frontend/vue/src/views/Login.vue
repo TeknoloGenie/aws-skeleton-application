@@ -11,11 +11,11 @@
 
     <div class="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
       <div class="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
-        <amplify-authenticator :form-fields="formFields">
+        <Authenticator :form-fields="formFields">
           <template v-slot="{ user, signOut }">
             <div class="text-center">
               <h3 class="text-lg font-medium text-gray-900 mb-4">
-                Welcome, {{ user.attributes?.email || user.username }}!
+                Welcome, {{ user.signInDetails?.loginId || user.username }}!
               </h3>
               <p class="text-sm text-gray-600 mb-4">
                 You are successfully signed in.
@@ -28,17 +28,17 @@
               </button>
             </div>
           </template>
-        </amplify-authenticator>
+        </Authenticator>
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import AmplifyAuthenticator from '@aws-amplify/ui-vue'
+import { Authenticator } from '@aws-amplify/ui-vue'
 import { useRouter } from 'vue-router'
 import { onMounted } from 'vue'
-import { fetchAuthSession } from 'aws-amplify/auth'
+import { fetchAuthSession } from '@aws-amplify/auth'
 
 const router = useRouter()
 

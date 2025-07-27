@@ -65,7 +65,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { API } from 'aws-amplify'
+import { apolloClient } from '../graphql/client'
 import { listPosts } from '../graphql/queries'
 
 interface Post {
