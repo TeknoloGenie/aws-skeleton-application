@@ -199,8 +199,8 @@ export class AppStack extends cdk.Stack {
     const schemaContent = this.schemaGenerator.generateSchema(this.models);
     
     // Write schema to file for AppSync to use
-    const fs = require('fs');
-    const path = require('path');
+    import * as fs from 'fs';
+    import * as path from 'path';
     const schemaPath = path.join(process.cwd(), 'schema.graphql');
     fs.writeFileSync(schemaPath, schemaContent, 'utf8');
 

@@ -89,7 +89,7 @@ export class DataSeederConstruct extends Construct {
     });
   }
 
-  private generateSeederCode(props: DataSeederConstructProps): string {
+  private generateSeederCode(_props: DataSeederConstructProps): string {
     return `
 const { DynamoDBClient } = require('@aws-sdk/client-dynamodb');
 const { DynamoDBDocumentClient, PutCommand, ScanCommand } = require('@aws-sdk/lib-dynamodb');
