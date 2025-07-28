@@ -10,6 +10,7 @@ export interface DataSeederConstructProps {
   stage: string;
   models: ModelDefinition[];
   seedData: SeedData;
+  layers: lambda.LayerVersion[];
 }
 
 export class DataSeederConstruct extends Construct {
@@ -27,6 +28,7 @@ export class DataSeederConstruct extends Construct {
       handler: 'data-seeder.handler',
       code: lambda.Code.fromAsset('lib/lambda'),
       timeout: cdk.Duration.minutes(5),
+      layers: props.layers,
       environment: {
         APP_NAME: props.appName,
         STAGE: props.stage,

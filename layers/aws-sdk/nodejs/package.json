@@ -1,0 +1,12 @@
+{
+  "name": "aws-sdk-layer",
+  "version": "1.0.0",
+  "description": "AWS SDK v3 dependencies for Lambda functions",
+  "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.848.0",
+    "@aws-sdk/lib-dynamodb": "^3.850.0",
+    "@aws-sdk/client-rds-data": "^3.848.0",
+    "@aws-sdk/client-s3": "^3.850.0",
+    "@aws-sdk/client-secrets-manager": "^3.848.0"
+  }
+}

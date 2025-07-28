@@ -15,6 +15,7 @@ export interface AwsExportsGeneratorProps {
   api: appsync.GraphqlApi;
   adminApi: apigateway.RestApi;
   models: ModelDefinition[];
+  layers: lambda.LayerVersion[];
 }
 
 export class AwsExportsGeneratorConstruct extends Construct {
@@ -28,6 +29,7 @@ export class AwsExportsGeneratorConstruct extends Construct {
       handler: 'aws-exports-generator.handler',
       code: lambda.Code.fromAsset('lib/lambda'),
       timeout: cdk.Duration.minutes(5),
+      layers: props.layers,
       environment: {
         USER_POOL_ID: props.userPool.userPoolId,
         USER_POOL_CLIENT_ID: props.userPoolClient.userPoolClientId,

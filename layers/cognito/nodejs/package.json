@@ -1,0 +1,8 @@
+{
+  "name": "cognito-layer",
+  "version": "1.0.0",
+  "description": "Cognito Identity Provider SDK for Lambda functions",
+  "dependencies": {
+    "@aws-sdk/client-cognito-identity-provider": "^3.848.0"
+  }
+}

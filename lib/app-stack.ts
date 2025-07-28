@@ -13,6 +13,8 @@ import * as rds from 'aws-cdk-lib/aws-rds';
 import * as secretsmanager from 'aws-cdk-lib/aws-secretsmanager';
 import * as sns from 'aws-cdk-lib/aws-sns';
 import * as sqs from 'aws-cdk-lib/aws-sqs';
+import * as fs from 'fs';
+import * as path from 'path';
 import { Construct } from 'constructs';
 import { AwsExportsGeneratorConstruct } from './constructs/aws-exports-generator';
 import { DataSeederConstruct } from './constructs/data-seeder';
@@ -38,9 +40,14 @@ export class AppStack extends cdk.Stack {
   private models: ModelDefinition[];
   private modelParser: ModelParser;
   private schemaGenerator: SchemaGenerator;
+  private awsSdkLayer: lambda.LayerVersion;
+  private cognitoLayer: lambda.LayerVersion;
 
   constructor(scope: Construct, id: string, props: AppStackProps) {
     super(scope, id, props);
+
+    // Create Lambda layers first
+    this.createLambdaLayers();
 
     // Initialize model parsing
     this.modelParser = new ModelParser();
@@ -103,6 +110,7 @@ export class AppStack extends cdk.Stack {
       stage: props.stage,
       models: this.models,
       seedData: this.modelParser.parseSeedData(),
+      layers: [this.awsSdkLayer],
     });
 
     // Create migration runner if RDS is used
@@ -124,6 +132,7 @@ export class AppStack extends cdk.Stack {
       api: this.api,
       adminApi: this.adminApi,
       models: this.models,
+      layers: [this.awsSdkLayer],
     });
 
     // Output important values
@@ -199,8 +208,6 @@ export class AppStack extends cdk.Stack {
     const schemaContent = this.schemaGenerator.generateSchema(this.models);
     
     // Write schema to file for AppSync to use
-    import * as fs from 'fs';
-    import * as path from 'path';
     const schemaPath = path.join(process.cwd(), 'schema.graphql');
     fs.writeFileSync(schemaPath, schemaContent, 'utf8');
 
@@ -394,6 +401,7 @@ export class AppStack extends cdk.Stack {
       handler: 'api-rate-limiter.handler',
       code: lambda.Code.fromAsset('lib/lambda'),
       timeout: cdk.Duration.minutes(5),
+      layers: [this.awsSdkLayer],
       environment: {
         SECRET_NAME: apiSecret.secretName,
         API_ENDPOINT: model.dataSource.endpoint!,
@@ -423,6 +431,7 @@ export class AppStack extends cdk.Stack {
       handler: 'job-completion-notifier.handler',
       code: lambda.Code.fromAsset('lib/lambda'),
       timeout: cdk.Duration.minutes(1),
+      layers: [this.awsSdkLayer],
       environment: {
         APPSYNC_ENDPOINT: this.api.graphqlUrl,
         APPSYNC_REGION: this.region,
@@ -880,6 +889,7 @@ export class AppStack extends cdk.Stack {
       },
       timeout: cdk.Duration.seconds(30),
       tracing: lambda.Tracing.ACTIVE,
+      layers: [this.cognitoLayer],
     });
 
     // Grant permissions to list users
@@ -928,5 +938,23 @@ export class AppStack extends cdk.Stack {
     });
 
     return api;
+  }
+
+  private createLambdaLayers(): void {
+    // Create AWS SDK layer for common dependencies
+    this.awsSdkLayer = new lambda.LayerVersion(this, 'AwsSdkLayer', {
+      layerVersionName: `${this.stackName}-aws-sdk-layer`,
+      code: lambda.Code.fromAsset('layers/aws-sdk'),
+      compatibleRuntimes: [lambda.Runtime.NODEJS_18_X],
+      description: 'AWS SDK v3 dependencies for Lambda functions',
+    });
+
+    // Create Cognito-specific layer
+    this.cognitoLayer = new lambda.LayerVersion(this, 'CognitoLayer', {
+      layerVersionName: `${this.stackName}-cognito-layer`,
+      code: lambda.Code.fromAsset('layers/cognito'),
+      compatibleRuntimes: [lambda.Runtime.NODEJS_18_X],
+      description: 'Cognito Identity Provider SDK for Lambda functions',
+    });
   }
 }
