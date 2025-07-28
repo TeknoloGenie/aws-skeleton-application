@@ -173,3 +173,4 @@ Dockerfile*
 # Misc
 *.tgz
 *.tar.gz
+layers/*/nodejs/node_modules/
