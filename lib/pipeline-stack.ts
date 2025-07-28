@@ -188,9 +188,6 @@ export class PipelineStack extends cdk.Stack {
               templatePath: buildOutput.atPath(`cdk.out/${props.appName}-dev.template.json`),
               stackName: `${props.appName}-dev`,
               adminPermissions: true,
-              parameterOverrides: {
-                Stage: 'dev',
-              },
               extraInputs: [buildOutput],
             }),
           ],
@@ -203,9 +200,6 @@ export class PipelineStack extends cdk.Stack {
               templatePath: buildOutput.atPath(`cdk.out/${props.appName}-test.template.json`),
               stackName: `${props.appName}-test`,
               adminPermissions: true,
-              parameterOverrides: {
-                Stage: 'test',
-              },
               extraInputs: [buildOutput],
             }),
           ],
@@ -242,9 +236,6 @@ export class PipelineStack extends cdk.Stack {
               templatePath: buildOutput.atPath(`cdk.out/${props.appName}-prod.template.json`),
               stackName: `${props.appName}-prod`,
               adminPermissions: true,
-              parameterOverrides: {
-                Stage: 'prod',
-              },
               extraInputs: [buildOutput],
             }),
           ],
@@ -298,9 +289,6 @@ export class PipelineStack extends cdk.Stack {
               templatePath: buildOutput.atPath(`cdk.out/${props.appName}-prod.template.json`),
               stackName: `${props.appName}-prod`,
               adminPermissions: true,
-              parameterOverrides: {
-                Stage: 'prod',
-              },
               extraInputs: [buildOutput],
             }),
           ],
