@@ -185,8 +185,8 @@ export class PipelineStack extends cdk.Stack {
           actions: [
             new codepipeline_actions.CloudFormationCreateUpdateStackAction({
               actionName: 'Deploy_Dev',
-              templatePath: buildOutput.atPath('cdk.out/App-Dev.template.json'),
-              stackName: `${props.appName}-Dev`,
+              templatePath: buildOutput.atPath(`cdk.out/${props.appName}-dev.template.json`),
+              stackName: `${props.appName}-dev`,
               adminPermissions: true,
               parameterOverrides: {
                 Stage: 'dev',
@@ -200,8 +200,8 @@ export class PipelineStack extends cdk.Stack {
           actions: [
             new codepipeline_actions.CloudFormationCreateUpdateStackAction({
               actionName: 'Deploy_Test',
-              templatePath: buildOutput.atPath('cdk.out/App-Test.template.json'),
-              stackName: `${props.appName}-Test`,
+              templatePath: buildOutput.atPath(`cdk.out/${props.appName}-test.template.json`),
+              stackName: `${props.appName}-test`,
               adminPermissions: true,
               parameterOverrides: {
                 Stage: 'test',
@@ -239,8 +239,8 @@ export class PipelineStack extends cdk.Stack {
           actions: [
             new codepipeline_actions.CloudFormationCreateUpdateStackAction({
               actionName: 'Deploy_Prod',
-              templatePath: buildOutput.atPath('cdk.out/App-Prod.template.json'),
-              stackName: `${props.appName}-Prod`,
+              templatePath: buildOutput.atPath(`cdk.out/${props.appName}-prod.template.json`),
+              stackName: `${props.appName}-prod`,
               adminPermissions: true,
               parameterOverrides: {
                 Stage: 'prod',
@@ -295,8 +295,8 @@ export class PipelineStack extends cdk.Stack {
           actions: [
             new codepipeline_actions.CloudFormationCreateUpdateStackAction({
               actionName: 'Deploy_Prod',
-              templatePath: buildOutput.atPath('cdk.out/App-Prod.template.json'),
-              stackName: `${props.appName}-Prod`,
+              templatePath: buildOutput.atPath(`cdk.out/${props.appName}-prod.template.json`),
+              stackName: `${props.appName}-prod`,
               adminPermissions: true,
               parameterOverrides: {
                 Stage: 'prod',
