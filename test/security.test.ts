@@ -41,7 +41,7 @@ describe('SecurityGenerator', () => {
       const result = securityGenerator.generateAuthorizationCheck(mockModel, 'update');
       
       expect(result).toContain('Authorization check for update operation');
-      expect(result).toContain('owner: true');
+      expect(result).toContain('Owner-based access');
       expect(result).toContain('needsOwnershipCheck');
     });
 
@@ -57,13 +57,19 @@ describe('SecurityGenerator', () => {
   });
 
   describe('generateOwnershipVerification', () => {
-    it('should generate ownership verification for read operations', () => {
-      const result = securityGenerator.generateOwnershipVerification(mockModel, 'read');
+    it('should generate ownership verification for update operations', () => {
+      const result = securityGenerator.generateOwnershipVerification(mockModel, 'update');
       
-      expect(result).toContain('Ownership verification for read operation');
+      expect(result).toContain('Ownership verification for update operation');
       expect(result).toContain('needsOwnershipCheck');
       expect(result).toContain('userId');
-      expect(result).toContain('$ctx.result = null');
+      expect(result).toContain('$util.unauthorized()');
+    });
+
+    it('should return empty string for operations without owner rules', () => {
+      const result = securityGenerator.generateOwnershipVerification(mockModel, 'read');
+      
+      expect(result).toBe('');
     });
 
     it('should generate ownership verification for update operations', () => {
