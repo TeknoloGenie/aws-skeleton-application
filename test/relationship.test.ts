@@ -105,7 +105,7 @@ describe('RelationshipGenerator', () => {
       const result = relationshipGenerator.generateRelationshipResolvers(mockModels[1]);
       const resolver = result[0];
       
-      expect(resolver.responseTemplate).toContain('Relationship authorization check');
+      expect(resolver.responseTemplate).toContain('Apply relationship-based authorization');
       expect(resolver.responseTemplate).toContain('$canAccessItem');
     });
   });

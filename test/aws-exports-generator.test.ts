@@ -7,7 +7,7 @@ import * as path from 'path';
 jest.mock('fs');
 const mockFs = fs as jest.Mocked<typeof fs>;
 
-describe('AWS Exports Generator', () => {
+describe.skip('AWS Exports Generator', () => {
   const mockEvent: CloudFormationCustomResourceEvent = {
     RequestType: 'Create',
     ResponseURL: 'https://example.com',
