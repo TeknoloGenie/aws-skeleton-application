@@ -1,5 +1,6 @@
 import * as appsync from '@aws-cdk/aws-appsync-alpha';
 import * as cdk from 'aws-cdk-lib';
+import * as apigateway from 'aws-cdk-lib/aws-apigateway';
 import * as budgets from 'aws-cdk-lib/aws-budgets';
 import * as cognito from 'aws-cdk-lib/aws-cognito';
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
@@ -30,6 +31,7 @@ export class AppStack extends cdk.Stack {
   public readonly userPool: cognito.UserPool;
   public readonly userPoolClient: cognito.UserPoolClient;
   public readonly api: appsync.GraphqlApi;
+  public readonly adminApi: apigateway.RestApi;
   public readonly vpc: ec2.Vpc;
   public readonly rdsCluster?: rds.ServerlessCluster;
 
@@ -74,6 +76,9 @@ export class AppStack extends cdk.Stack {
     // Create AppSync API
     this.api = this.createAppSyncApi(props);
 
+    // Create Admin API Gateway
+    this.adminApi = this.createAdminApi(props);
+
     // Create RDS cluster if needed
     if (needsRds && this.vpc) {
       this.rdsCluster = this.createRdsCluster(props);
@@ -117,6 +122,7 @@ export class AppStack extends cdk.Stack {
       userPool: this.userPool,
       userPoolClient: this.userPoolClient,
       api: this.api,
+      adminApi: this.adminApi,
       models: this.models,
     });
 
@@ -125,7 +131,7 @@ export class AppStack extends cdk.Stack {
   }
 
   private createUserPool(props: AppStackProps): cognito.UserPool {
-    return new cognito.UserPool(this, 'UserPool', {
+    const userPool = new cognito.UserPool(this, 'UserPool', {
       userPoolName: `${props.appName}-${props.stage}-users`,
       selfSignUpEnabled: true,
       signInAliases: {
@@ -159,6 +165,16 @@ export class AppStack extends cdk.Stack {
       accountRecovery: cognito.AccountRecovery.EMAIL_ONLY,
       removalPolicy: cdk.RemovalPolicy.DESTROY,
     });
+
+    // Create admin group
+    new cognito.CfnUserPoolGroup(this, 'AdminGroup', {
+      userPoolId: userPool.userPoolId,
+      groupName: 'admins',
+      description: 'Administrator group with full access',
+      precedence: 1
+    });
+
+    return userPool;
   }
 
   private createUserPoolClient(): cognito.UserPoolClient {
@@ -839,11 +855,78 @@ export class AppStack extends cdk.Stack {
       description: 'AppSync GraphQL API ID',
     });
 
+    new cdk.CfnOutput(this, 'AdminApiUrl', {
+      value: this.adminApi.url,
+      description: 'Admin API Gateway URL',
+    });
+
     if (this.rdsCluster) {
       new cdk.CfnOutput(this, 'RdsClusterEndpoint', {
         value: this.rdsCluster.clusterEndpoint.socketAddress,
         description: 'RDS Cluster Endpoint',
       });
     }
+  }
+
+  private createAdminApi(props: AppStackProps): apigateway.RestApi {
+    // Create the Cognito Admin Lambda function
+    const cognitoAdminFunction = new lambda.Function(this, 'CognitoAdminFunction', {
+      functionName: `${props.appName}-${props.stage}-cognito-admin`,
+      runtime: lambda.Runtime.NODEJS_18_X,
+      handler: 'cognito-admin.handler',
+      code: lambda.Code.fromAsset('lib/lambda'),
+      environment: {
+        USER_POOL_ID: this.userPool.userPoolId
+      },
+      timeout: cdk.Duration.seconds(30),
+      tracing: lambda.Tracing.ACTIVE,
+    });
+
+    // Grant permissions to list users
+    cognitoAdminFunction.addToRolePolicy(new iam.PolicyStatement({
+      effect: iam.Effect.ALLOW,
+      actions: [
+        'cognito-idp:ListUsers',
+        'cognito-idp:AdminGetUser'
+      ],
+      resources: [this.userPool.userPoolArn]
+    }));
+
+    // Create API Gateway
+    const api = new apigateway.RestApi(this, 'AdminApi', {
+      restApiName: `${props.appName}-${props.stage}-admin-api`,
+      description: 'Admin API for Cognito user management',
+      defaultCorsPreflightOptions: {
+        allowOrigins: apigateway.Cors.ALL_ORIGINS,
+        allowMethods: apigateway.Cors.ALL_METHODS,
+        allowHeaders: [
+          'Content-Type',
+          'X-Amz-Date',
+          'Authorization',
+          'X-Api-Key',
+          'X-Amz-Security-Token'
+        ]
+      }
+    });
+
+    // Create Cognito authorizer
+    const authorizer = new apigateway.CognitoUserPoolsAuthorizer(this, 'AdminAuthorizer', {
+      cognitoUserPools: [this.userPool],
+      authorizerName: `${props.appName}-${props.stage}-admin-authorizer`
+    });
+
+    // Create API resources: /api/admin/cognito/users
+    const apiResource = api.root.addResource('api');
+    const adminResource = apiResource.addResource('admin');
+    const cognitoResource = adminResource.addResource('cognito');
+    const usersResource = cognitoResource.addResource('users');
+
+    // Add GET method for listing users
+    usersResource.addMethod('GET', new apigateway.LambdaIntegration(cognitoAdminFunction), {
+      authorizer,
+      authorizationType: apigateway.AuthorizationType.COGNITO
+    });
+
+    return api;
   }
 }

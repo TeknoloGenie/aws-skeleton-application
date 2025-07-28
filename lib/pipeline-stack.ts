@@ -50,8 +50,8 @@ export class PipelineStack extends cdk.Stack {
     return new codebuild.Project(this, 'BuildProject', {
       projectName: `${props.appName}-build`,
       source: codebuild.Source.gitHub({
-        owner: 'your-github-username',
-        repo: 'your-repo-name',
+        owner: 'TeknoloGenie',
+        repo: 'aws-skeleton-application',
       }),
       environment: {
         buildImage: codebuild.LinuxBuildImage.STANDARD_7_0,
@@ -112,8 +112,8 @@ export class PipelineStack extends cdk.Stack {
     return new codebuild.Project(this, 'TestProject', {
       projectName: `${props.appName}-test`,
       source: codebuild.Source.gitHub({
-        owner: 'your-github-username',
-        repo: 'your-repo-name',
+        owner: 'TeknoloGenie',
+        repo: 'aws-skeleton-application',
       }),
       environment: {
         buildImage: codebuild.LinuxBuildImage.STANDARD_7_0,
@@ -161,8 +161,8 @@ export class PipelineStack extends cdk.Stack {
           actions: [
             new codepipeline_actions.GitHubSourceAction({
               actionName: 'GitHub_Source',
-              owner: 'your-github-username', // Placeholder
-              repo: 'your-repo-name', // Placeholder
+              owner: 'TeknoloGenie',
+              repo: 'aws-skeleton-application',
               branch: 'develop',
               oauthToken: cdk.SecretValue.secretsManager('github-token'),
               output: sourceOutput,
@@ -262,8 +262,8 @@ export class PipelineStack extends cdk.Stack {
           actions: [
             new codepipeline_actions.GitHubSourceAction({
               actionName: 'GitHub_Source_Main',
-              owner: 'your-github-username', // Placeholder
-              repo: 'your-repo-name', // Placeholder
+              owner: 'TeknoloGenie',
+              repo: 'aws-skeleton-application',
               branch: 'main',
               oauthToken: cdk.SecretValue.secretsManager('github-token'),
               output: sourceOutput,
