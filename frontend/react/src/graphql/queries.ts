@@ -8,6 +8,8 @@ export const LIST_USERS = gql`
       name
       email
       bio
+      role
+      cognitoId
       createdAt
       updatedAt
     }
@@ -21,6 +23,8 @@ export const GET_USER = gql`
       name
       email
       bio
+      role
+      cognitoId
       createdAt
       updatedAt
       posts {
@@ -30,6 +34,45 @@ export const GET_USER = gql`
         published
         createdAt
       }
+    }
+  }
+`;
+
+// User Mutations
+export const CREATE_USER = gql`
+  mutation CreateUser($input: CreateUserInput!) {
+    createUser(input: $input) {
+      id
+      name
+      email
+      bio
+      role
+      cognitoId
+      createdAt
+      updatedAt
+    }
+  }
+`;
+
+export const UPDATE_USER = gql`
+  mutation UpdateUser($input: UpdateUserInput!) {
+    updateUser(input: $input) {
+      id
+      name
+      email
+      bio
+      role
+      cognitoId
+      createdAt
+      updatedAt
+    }
+  }
+`;
+
+export const DELETE_USER = gql`
+  mutation DeleteUser($input: DeleteUserInput!) {
+    deleteUser(input: $input) {
+      id
     }
   }
 `;
@@ -69,6 +112,43 @@ export const GET_POST = gql`
         name
         email
       }
+    }
+  }
+`;
+
+// Post Mutations
+export const CREATE_POST = gql`
+  mutation CreatePost($input: CreatePostInput!) {
+    createPost(input: $input) {
+      id
+      title
+      content
+      userId
+      published
+      createdAt
+      updatedAt
+    }
+  }
+`;
+
+export const UPDATE_POST = gql`
+  mutation UpdatePost($input: UpdatePostInput!) {
+    updatePost(input: $input) {
+      id
+      title
+      content
+      userId
+      published
+      createdAt
+      updatedAt
+    }
+  }
+`;
+
+export const DELETE_POST = gql`
+  mutation DeletePost($input: DeletePostInput!) {
+    deletePost(input: $input) {
+      id
     }
   }
 `;
@@ -131,6 +211,8 @@ export const ON_CREATE_USER = gql`
       name
       email
       bio
+      role
+      cognitoId
       createdAt
     }
   }

@@ -19,6 +19,7 @@ export const handler = async (
       USER_POOL_CLIENT_ID,
       GRAPHQL_API_URL,
       GRAPHQL_API_ID,
+      ADMIN_API_URL,
       APP_NAME,
       STAGE,
       MODELS,
@@ -39,6 +40,7 @@ export const handler = async (
       userPoolClientId: USER_POOL_CLIENT_ID,
       graphqlApiUrl: GRAPHQL_API_URL,
       graphqlApiId: GRAPHQL_API_ID || '',
+      adminApiUrl: ADMIN_API_URL || '',
       region: AWS_REGION,
       appName: APP_NAME || 'MyApp',
       stage: STAGE || 'dev',
@@ -100,6 +102,7 @@ function generateAwsExports(config: {
   userPoolClientId: string;
   graphqlApiUrl: string;
   graphqlApiId: string;
+  adminApiUrl: string;
   region: string;
   appName: string;
   stage: string;
@@ -135,6 +138,7 @@ const awsmobile = {
   "aws_appsync_region": "${config.region}",
   "aws_appsync_authenticationType": "AMAZON_COGNITO_USER_POOLS",
   "aws_appsync_apiKey": "",
+  "aws_admin_api_endpoint": "${config.adminApiUrl}",
   ${hasSubscriptions ? `"aws_appsync_realTimeEndpoint": "${config.graphqlApiUrl.replace('https://', 'wss://').replace('/graphql', '/realtime')}",` : ''}
   ${hasRateLimit ? `"aws_appsync_jobCompletionEndpoint": "${config.graphqlApiUrl}",` : ''}
   "models": ${JSON.stringify(config.models, null, 2)},

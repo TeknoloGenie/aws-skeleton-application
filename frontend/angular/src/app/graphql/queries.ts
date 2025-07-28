@@ -6,6 +6,8 @@ export const listUsers = `
       name
       email
       bio
+      role
+      cognitoId
       createdAt
       updatedAt
     }
@@ -19,6 +21,8 @@ export const getUser = `
       name
       email
       bio
+      role
+      cognitoId
       createdAt
       updatedAt
       posts {
@@ -27,6 +31,45 @@ export const getUser = `
         published
         createdAt
       }
+    }
+  }
+`;
+
+// User mutations
+export const createUser = `
+  mutation CreateUser($input: CreateUserInput!) {
+    createUser(input: $input) {
+      id
+      name
+      email
+      bio
+      role
+      cognitoId
+      createdAt
+      updatedAt
+    }
+  }
+`;
+
+export const updateUser = `
+  mutation UpdateUser($input: UpdateUserInput!) {
+    updateUser(input: $input) {
+      id
+      name
+      email
+      bio
+      role
+      cognitoId
+      createdAt
+      updatedAt
+    }
+  }
+`;
+
+export const deleteUser = `
+  mutation DeleteUser($input: DeleteUserInput!) {
+    deleteUser(input: $input) {
+      id
     }
   }
 `;
@@ -66,6 +109,43 @@ export const getPost = `
         name
         email
       }
+    }
+  }
+`;
+
+// Post mutations
+export const createPost = `
+  mutation CreatePost($input: CreatePostInput!) {
+    createPost(input: $input) {
+      id
+      title
+      content
+      userId
+      published
+      createdAt
+      updatedAt
+    }
+  }
+`;
+
+export const updatePost = `
+  mutation UpdatePost($input: UpdatePostInput!) {
+    updatePost(input: $input) {
+      id
+      title
+      content
+      userId
+      published
+      createdAt
+      updatedAt
+    }
+  }
+`;
+
+export const deletePost = `
+  mutation DeletePost($input: DeletePostInput!) {
+    deletePost(input: $input) {
+      id
     }
   }
 `;

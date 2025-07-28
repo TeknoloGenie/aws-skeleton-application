@@ -3,6 +3,7 @@ import * as lambda from 'aws-cdk-lib/aws-lambda';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import * as cognito from 'aws-cdk-lib/aws-cognito';
 import * as appsync from '@aws-cdk/aws-appsync-alpha';
+import * as apigateway from 'aws-cdk-lib/aws-apigateway';
 import { Construct } from 'constructs';
 import { ModelDefinition } from '../types/model';
 
@@ -12,6 +13,7 @@ export interface AwsExportsGeneratorProps {
   userPool: cognito.UserPool;
   userPoolClient: cognito.UserPoolClient;
   api: appsync.GraphqlApi;
+  adminApi: apigateway.RestApi;
   models: ModelDefinition[];
 }
 
@@ -31,6 +33,7 @@ export class AwsExportsGeneratorConstruct extends Construct {
         USER_POOL_CLIENT_ID: props.userPoolClient.userPoolClientId,
         GRAPHQL_API_URL: props.api.graphqlUrl,
         GRAPHQL_API_ID: props.api.apiId,
+        ADMIN_API_URL: props.adminApi.url,
         APP_NAME: props.appName,
         STAGE: props.stage,
         MODELS: JSON.stringify(props.models.map(m => ({
