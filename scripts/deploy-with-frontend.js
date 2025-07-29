@@ -89,6 +89,10 @@ async function main() {
       description: 'Installing dependencies'
     },
     {
+      command: 'npm run build',
+      description: 'Building application and layers'
+    },
+    {
       command: 'npm run frontend:install',
       description: 'Installing frontend dependencies'
     },

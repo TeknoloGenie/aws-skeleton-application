@@ -57,6 +57,13 @@ try {
         throw "Failed to install dependencies"
     }
 
+    # Build application and layers
+    Write-Host "Building application and layers..." -ForegroundColor Yellow
+    npm run build
+    if ($LASTEXITCODE -ne 0) {
+        throw "Failed to build application and layers"
+    }
+
     # Install frontend dependencies
     Write-Host "Installing frontend dependencies..." -ForegroundColor Yellow
     npm run frontend:install

@@ -19,8 +19,8 @@ export CDK_DEFAULT_REGION=$AWS_REGION
 echo "📦 Installing dependencies..."
 npm install
 
-echo "🏗️  Building Lambda functions..."
-npm run build:lambda
+echo "🏗️  Building application and layers..."
+npm run build
 
 echo "☁️  Deploying CDK stack..."
 cdk deploy $APP_NAME-$STAGE --context appName=$APP_NAME --context stage=$STAGE --require-approval never
