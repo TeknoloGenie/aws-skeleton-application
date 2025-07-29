@@ -45,7 +45,7 @@ function checkCommand(command, name) {
 
 async function main() {
   // Get configuration from environment variables or use defaults
-  const appName = process.env.APP_NAME || 'MyApp';
+  const appName = process.env.APP_NAME || 'SkeletonApp';
   const stage = process.env.STAGE || 'dev';
   const awsRegion = process.env.AWS_REGION || 'us-east-1';
 

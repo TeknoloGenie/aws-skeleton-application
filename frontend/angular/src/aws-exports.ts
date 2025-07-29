@@ -1,7 +1,7 @@
 // Fallback AWS configuration for development
 const awsExports = {
   aws_project_region: 'us-east-1',
-  aws_project_name: 'MyApp',
+  aws_project_name: 'SkeletonApp',
   aws_project_stage: 'dev',
   aws_cognito_identity_pool_id: 'us-east-1:12345678-1234-1234-1234-123456789012',
   aws_cognito_region: 'us-east-1',

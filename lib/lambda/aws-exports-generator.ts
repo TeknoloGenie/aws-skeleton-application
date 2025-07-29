@@ -42,7 +42,7 @@ export const handler = async (
       graphqlApiId: GRAPHQL_API_ID || '',
       adminApiUrl: ADMIN_API_URL || '',
       region: AWS_REGION,
-      appName: APP_NAME || 'MyApp',
+      appName: APP_NAME || 'SkeletonApp',
       stage: STAGE || 'dev',
       models,
     });

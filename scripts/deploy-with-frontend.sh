@@ -5,7 +5,7 @@
 
 set -e
 
-APP_NAME=${1:-MyApp}
+APP_NAME=${1:-SkeletonApp}
 STAGE=${2:-dev}
 AWS_REGION=${3:-us-east-1}
 
