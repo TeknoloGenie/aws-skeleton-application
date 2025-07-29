@@ -5,7 +5,7 @@ REM Windows Batch Script
 echo Starting AWS Application Accelerator deployment...
 
 REM Set default values if not provided
-if "%APP_NAME%"=="" set APP_NAME=MyApp
+if "%APP_NAME%"=="" set APP_NAME=SkeletonApp
 if "%STAGE%"=="" set STAGE=dev
 if "%AWS_REGION%"=="" set AWS_REGION=us-east-1
 

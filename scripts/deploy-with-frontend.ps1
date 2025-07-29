@@ -8,7 +8,7 @@ param(
 )
 
 # Set default values
-if (-not $AppName) { $AppName = "MyApp" }
+if (-not $AppName) { $AppName = "SkeletonApp" }
 if (-not $Stage) { $Stage = "dev" }
 if (-not $AwsRegion) { $AwsRegion = "us-east-1" }
 

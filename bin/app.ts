@@ -1,13 +1,13 @@
 #!/usr/bin/env node
-import 'source-map-support/register';
 import * as cdk from 'aws-cdk-lib';
+import 'source-map-support/register';
 import { AppStack } from '../lib/app-stack';
 import { PipelineStack } from '../lib/pipeline-stack';
 
 const app = new cdk.App();
 
 // Get configuration from context or environment
-const appName = app.node.tryGetContext('appName') || process.env.APP_NAME || 'MyApp';
+const appName = app.node.tryGetContext('appName') || process.env.APP_NAME || 'SkeletonApp';
 const stage = app.node.tryGetContext('stage') || process.env.STAGE;
 const account = process.env.CDK_DEFAULT_ACCOUNT;
 const region = process.env.CDK_DEFAULT_REGION || 'us-east-1';
