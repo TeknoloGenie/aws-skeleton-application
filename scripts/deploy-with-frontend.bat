@@ -40,6 +40,14 @@ if errorlevel 1 (
     exit /b 1
 )
 
+REM Build application and layers
+echo Building application and layers...
+call npm run build
+if errorlevel 1 (
+    echo ERROR: Failed to build application and layers
+    exit /b 1
+)
+
 REM Install frontend dependencies
 echo Installing frontend dependencies...
 call npm run frontend:install
