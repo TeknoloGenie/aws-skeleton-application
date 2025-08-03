@@ -81,7 +81,7 @@ export class PipelineStack extends cdk.Stack {
             commands: [
               'npm run build',
               `cdk synth --context appName=${props.appName} --context stage=dev`,
-              `cd cdk.out && npx cdk-assets publish ${props.appName}-dev.assets.json`,
+              `cd cdk.out && for file in *.assets.json; do [ -f "$file" ] && npx cdk-assets publish "$file"; done`,
             ],
           },
         },
