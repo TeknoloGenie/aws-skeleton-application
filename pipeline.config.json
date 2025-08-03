@@ -1,0 +1,13 @@
+{
+  "github": {
+    "owner": "your-github-username",
+    "repo": "skeleton-application",
+    "branches": {
+      "develop": "develop",
+      "main": "main"
+    }
+  },
+  "environments": ["dev", "test", "prod"],
+  "buildImage": "STANDARD_7_0",
+  "nodeVersion": "18"
+}

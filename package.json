@@ -11,6 +11,7 @@
     "build:layers:cognito": "cd layers/cognito/nodejs && npm install --production",
     "watch": "tsc -w",
     "test": "jest",
+    "test:e2e": "jest --testPathPattern=test/e2e",
     "cdk": "cdk",
     "deploy": "npm run build && cdk deploy",
     "deploy:with-frontend": "npm run build && node scripts/deploy-with-frontend.js",

@@ -50,8 +50,8 @@ export class PipelineStack extends cdk.Stack {
     return new codebuild.Project(this, 'BuildProject', {
       projectName: `${props.appName}-build`,
       source: codebuild.Source.gitHub({
-        owner: 'TeknoloGenie',
-        repo: 'aws-skeleton-application',
+        owner: 'your-github-username', // Update this with your GitHub username
+        repo: 'skeleton-application',   // Update this with your repository name
       }),
       environment: {
         buildImage: codebuild.LinuxBuildImage.STANDARD_7_0,
@@ -81,6 +81,7 @@ export class PipelineStack extends cdk.Stack {
             commands: [
               'npm run build',
               `cdk synth --context appName=${props.appName} --context stage=dev`,
+              `cd cdk.out && npx cdk-assets publish ${props.appName}-dev.assets.json`,
             ],
           },
         },
@@ -112,8 +113,8 @@ export class PipelineStack extends cdk.Stack {
     return new codebuild.Project(this, 'TestProject', {
       projectName: `${props.appName}-test`,
       source: codebuild.Source.gitHub({
-        owner: 'TeknoloGenie',
-        repo: 'aws-skeleton-application',
+        owner: 'your-github-username', // Update this with your GitHub username
+        repo: 'skeleton-application',   // Update this with your repository name
       }),
       environment: {
         buildImage: codebuild.LinuxBuildImage.STANDARD_7_0,
@@ -161,8 +162,8 @@ export class PipelineStack extends cdk.Stack {
           actions: [
             new codepipeline_actions.GitHubSourceAction({
               actionName: 'GitHub_Source',
-              owner: 'TeknoloGenie',
-              repo: 'aws-skeleton-application',
+              owner: 'your-github-username', // Update this with your GitHub username
+              repo: 'skeleton-application',   // Update this with your repository name
               branch: 'develop',
               oauthToken: cdk.SecretValue.secretsManager('github-token'),
               output: sourceOutput,
@@ -253,8 +254,8 @@ export class PipelineStack extends cdk.Stack {
           actions: [
             new codepipeline_actions.GitHubSourceAction({
               actionName: 'GitHub_Source_Main',
-              owner: 'TeknoloGenie',
-              repo: 'aws-skeleton-application',
+              owner: 'your-github-username', // Update this with your GitHub username
+              repo: 'skeleton-application',   // Update this with your repository name
               branch: 'main',
               oauthToken: cdk.SecretValue.secretsManager('github-token'),
               output: sourceOutput,
