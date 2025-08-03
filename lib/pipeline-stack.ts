@@ -80,7 +80,7 @@ export class PipelineStack extends cdk.Stack {
           build: {
             commands: [
               'npm run build',
-              `cdk synth --context appName=${props.appName}`,
+              `cdk synth --context appName=${props.appName} --context stage=dev`,
             ],
           },
         },
