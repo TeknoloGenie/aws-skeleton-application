@@ -50,8 +50,8 @@ export class PipelineStack extends cdk.Stack {
     return new codebuild.Project(this, 'BuildProject', {
       projectName: `${props.appName}-build`,
       source: codebuild.Source.gitHub({
-        owner: 'your-github-username', // Update this with your GitHub username
-        repo: 'skeleton-application',   // Update this with your repository name
+        owner: 'your-github-username',
+        repo: 'skeleton-application',
       }),
       environment: {
         buildImage: codebuild.LinuxBuildImage.STANDARD_7_0,
@@ -113,8 +113,8 @@ export class PipelineStack extends cdk.Stack {
     return new codebuild.Project(this, 'TestProject', {
       projectName: `${props.appName}-test`,
       source: codebuild.Source.gitHub({
-        owner: 'your-github-username', // Update this with your GitHub username
-        repo: 'skeleton-application',   // Update this with your repository name
+        owner: 'your-github-username',
+        repo: 'skeleton-application',
       }),
       environment: {
         buildImage: codebuild.LinuxBuildImage.STANDARD_7_0,
@@ -162,8 +162,8 @@ export class PipelineStack extends cdk.Stack {
           actions: [
             new codepipeline_actions.GitHubSourceAction({
               actionName: 'GitHub_Source',
-              owner: 'your-github-username', // Update this with your GitHub username
-              repo: 'skeleton-application',   // Update this with your repository name
+              owner: 'your-github-username',
+              repo: 'skeleton-application',
               branch: 'develop',
               oauthToken: cdk.SecretValue.secretsManager('github-token'),
               output: sourceOutput,
@@ -254,8 +254,8 @@ export class PipelineStack extends cdk.Stack {
           actions: [
             new codepipeline_actions.GitHubSourceAction({
               actionName: 'GitHub_Source_Main',
-              owner: 'your-github-username', // Update this with your GitHub username
-              repo: 'skeleton-application',   // Update this with your repository name
+              owner: 'your-github-username',
+              repo: 'skeleton-application',
               branch: 'main',
               oauthToken: cdk.SecretValue.secretsManager('github-token'),
               output: sourceOutput,
