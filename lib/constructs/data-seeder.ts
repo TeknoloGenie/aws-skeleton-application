@@ -25,8 +25,8 @@ export class DataSeederConstruct extends Construct {
     const seederFunction = new lambda.Function(this, 'SeederFunction', {
       functionName: `${props.appName}-${props.stage}-data-seeder`,
       runtime: lambda.Runtime.NODEJS_18_X,
-      handler: 'data-seeder.handler',
-      code: lambda.Code.fromAsset('lib/lambda'),
+      handler: 'index.handler',
+      code: lambda.Code.fromInline(this.generateSeederCode(props)),
       timeout: cdk.Duration.minutes(5),
       layers: props.layers,
       environment: {
@@ -91,7 +91,7 @@ export class DataSeederConstruct extends Construct {
     });
   }
 
-  private generateSeederCode(_props: DataSeederConstructProps): string {
+  private generateSeederCode(props: DataSeederConstructProps): string {
     return `
 const { DynamoDBClient } = require('@aws-sdk/client-dynamodb');
 const { DynamoDBDocumentClient, PutCommand, ScanCommand } = require('@aws-sdk/lib-dynamodb');
@@ -102,20 +102,28 @@ const dynamodb = DynamoDBDocumentClient.from(dynamoClient);
 const rdsData = new RDSDataClient({});
 
 exports.handler = async (event) => {
-  console.log('Data seeder event:', JSON.stringify(event, null, 2));
-  
+  console.log('Data Seeder Event:', JSON.stringify(event, null, 2));
+
   if (event.RequestType === 'Delete') {
     return { Status: 'SUCCESS', PhysicalResourceId: 'data-seeder' };
   }
 
   try {
-    const seedData = JSON.parse(event.ResourceProperties.SeedData);
-    const models = JSON.parse(event.ResourceProperties.Models);
-    
+    const { SeedData, Models } = event.ResourceProperties;
+    const seedData = JSON.parse(SeedData);
+    const models = JSON.parse(Models);
+
+    console.log('Processing seed data for models:', Object.keys(seedData));
+
     for (const [modelName, records] of Object.entries(seedData)) {
+      if (!Array.isArray(records) || records.length === 0) {
+        console.log(\`No records to seed for \${modelName}\`);
+        continue;
+      }
+
       const model = models.find(m => m.name === modelName);
       if (!model) {
-        console.warn(\`Model \${modelName} not found, skipping seed data\`);
+        console.log(\`Model \${modelName} not found, skipping\`);
         continue;
       }
 
@@ -166,9 +174,9 @@ async function seedDynamoDB(modelName, records) {
 }
 
 async function seedRDS(modelName, records, model) {
-  const clusterArn = \`arn:aws:rds:\${process.env.AWS_REGION}:\${process.env.AWS_ACCOUNT_ID}:cluster:\${process.env.APP_NAME}-\${process.env.STAGE}-cluster\`;
-  const secretArn = \`arn:aws:secretsmanager:\${process.env.AWS_REGION}:\${process.env.AWS_ACCOUNT_ID}:secret:\${process.env.APP_NAME}-\${process.env.STAGE}-db-secret\`;
-  const database = process.env.APP_NAME.toLowerCase();
+  const clusterArn = process.env.CLUSTER_ARN;
+  const secretArn = process.env.SECRET_ARN;
+  const database = process.env.DATABASE_NAME;
   const tableName = modelName.toLowerCase();
 
   for (const record of records) {
