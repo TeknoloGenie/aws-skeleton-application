@@ -10,11 +10,29 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
 
   try {
     // Verify the user has admin permissions
-    const userGroups = event.requestContext.authorizer?.claims['cognito:groups'];
-    console.log('User groups:', userGroups);
+    const claims = event.requestContext.authorizer?.claims;
+    console.log('All claims:', JSON.stringify(claims, null, 2));
     
-    if (!userGroups || !userGroups.includes('admins')) {
-      console.log('Access denied - user not in admins group');
+    const userGroups = claims?.['cognito:groups'];
+    console.log('User groups raw:', userGroups, 'Type:', typeof userGroups);
+    
+    // Handle different group formats (string, array, or comma-separated)
+    let groupsArray: string[] = [];
+    if (typeof userGroups === 'string') {
+      // Groups might be comma-separated string or JSON array string
+      try {
+        groupsArray = JSON.parse(userGroups);
+      } catch {
+        groupsArray = userGroups.split(',').map(g => g.trim());
+      }
+    } else if (Array.isArray(userGroups)) {
+      groupsArray = userGroups;
+    }
+    
+    console.log('Processed groups array:', groupsArray);
+    
+    if (!groupsArray.includes('admins')) {
+      console.log('Access denied - user not in admins group. Available groups:', groupsArray);
       return {
         statusCode: 403,
         headers: {
@@ -23,7 +41,14 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
           'Access-Control-Allow-Headers': 'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token',
           'Access-Control-Allow-Methods': 'GET,OPTIONS'
         },
-        body: JSON.stringify({ error: 'Insufficient permissions - admin access required' })
+        body: JSON.stringify({ 
+          error: 'Insufficient permissions - admin access required',
+          userGroups: groupsArray,
+          debug: {
+            rawGroups: userGroups,
+            groupsType: typeof userGroups
+          }
+        })
       };
     }
 
