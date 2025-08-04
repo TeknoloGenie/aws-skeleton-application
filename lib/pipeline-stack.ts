@@ -81,7 +81,8 @@ export class PipelineStack extends cdk.Stack {
             commands: [
               'npm run build',
               `cdk synth --context appName=${props.appName} --context stage=dev`,
-              `cd cdk.out && for file in *.assets.json; do [ -f "$file" ] && npx cdk-assets publish "$file"; done`,
+              `cd cdk.out && ls -la`,
+              `cdk deploy ${props.appName}-dev --context appName=${props.appName} --context stage=dev --require-approval never --outputs-file /tmp/stack-outputs.json`,
             ],
           },
         },
@@ -184,12 +185,28 @@ export class PipelineStack extends cdk.Stack {
         {
           stageName: 'Deploy_Dev',
           actions: [
-            new codepipeline_actions.CloudFormationCreateUpdateStackAction({
-              actionName: 'Deploy_Dev',
-              templatePath: buildOutput.atPath(`cdk.out/${props.appName}-dev.template.json`),
-              stackName: `${props.appName}-dev`,
-              adminPermissions: true,
-              extraInputs: [buildOutput],
+            new codepipeline_actions.CodeBuildAction({
+              actionName: 'Verify_Deployment',
+              project: new codebuild.Project(this, 'VerifyProject', {
+                projectName: `${props.appName}-verify`,
+                source: codebuild.Source.codePipeline(),
+                environment: {
+                  buildImage: codebuild.LinuxBuildImage.STANDARD_7_0,
+                  computeType: codebuild.ComputeType.SMALL,
+                },
+                buildSpec: codebuild.BuildSpec.fromObject({
+                  version: '0.2',
+                  phases: {
+                    build: {
+                      commands: [
+                        'echo "Deployment completed in build stage"',
+                        'aws cloudformation describe-stacks --stack-name SkeletonApp-dev --region us-east-1',
+                      ],
+                    },
+                  },
+                }),
+              }),
+              input: buildOutput,
             }),
           ],
         },
