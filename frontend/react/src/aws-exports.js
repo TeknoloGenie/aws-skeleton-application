@@ -5,11 +5,11 @@
 const awsmobile = {
   "aws_project_region": "us-east-1",
   "aws_project_name": "SkeletonApp",
-  "aws_project_stage": "dev-v2",
+  "aws_project_stage": "dev",
   "aws_cognito_identity_pool_id": "",
   "aws_cognito_region": "us-east-1",
-  "aws_user_pools_id": "us-east-1_KpX5Jkuog",
-  "aws_user_pools_web_client_id": "21d11r3olffdegfur08ndqekhr",
+  "aws_user_pools_id": "us-east-1_rprNNe8Cx",
+  "aws_user_pools_web_client_id": "3mde2e4vg3p04fnabp8sdb6rs1",
   "oauth": {},
   "aws_cognito_username_attributes": ["email"],
   "aws_cognito_social_providers": [],
@@ -21,11 +21,12 @@ const awsmobile = {
     "passwordPolicyCharacters": []
   },
   "aws_cognito_verification_mechanisms": ["email"],
-  "aws_appsync_graphqlEndpoint": "https://pdovgbq2lzclxefvfgclcnjula.appsync-api.us-east-1.amazonaws.com/graphql",
+  "aws_appsync_graphqlEndpoint": "https://flg6yzpmyrhfpdgt4pgwpzdmvy.appsync-api.us-east-1.amazonaws.com/graphql",
   "aws_appsync_region": "us-east-1",
   "aws_appsync_authenticationType": "AMAZON_COGNITO_USER_POOLS",
   "aws_appsync_apiKey": "",
-  "aws_appsync_realTimeEndpoint": "wss://pdovgbq2lzclxefvfgclcnjula.appsync-realtime-api.us-east-1.amazonaws.com/graphql",
+  "aws_appsync_realTimeEndpoint": "wss://flg6yzpmyrhfpdgt4pgwpzdmvy.appsync-realtime-api.us-east-1.amazonaws.com/graphql",
+  "aws_admin_api_endpoint": "https://r7z036v2ef.execute-api.us-east-1.amazonaws.com/prod/",
   "models": [
     {
       "name": "GeoData",
@@ -43,8 +44,8 @@ const awsmobile = {
       "hasRateLimit": false
     }
   ],
-  "generated_at": "2025-07-26T22:45:52.000Z",
-  "api_id": "fqetc6ejxzbzrb5nj6ua64iday"
+  "generated_at": "2025-08-04T05:30:00.000Z",
+  "api_id": "yzzbiffx4ral7n3bshz76qfd6e"
 };
 
 export default awsmobile;
