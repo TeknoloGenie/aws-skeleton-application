@@ -101,17 +101,61 @@ export class AwsExportsGeneratorConstruct extends Construct {
 
   private generateAwsExportsCode(): string {
     return `
-const fs = require('fs');
-const path = require('path');
+const https = require('https');
+const url = require('url');
 
-exports.handler = async (event) => {
+function sendResponse(event, context, responseStatus, responseData, physicalResourceId, noEcho) {
+  return new Promise((resolve, reject) => {
+    const responseBody = JSON.stringify({
+      Status: responseStatus,
+      Reason: 'See the details in CloudWatch Log Stream: ' + context.logStreamName,
+      PhysicalResourceId: physicalResourceId || context.logStreamName,
+      StackId: event.StackId,
+      RequestId: event.RequestId,
+      LogicalResourceId: event.LogicalResourceId,
+      NoEcho: noEcho || false,
+      Data: responseData
+    });
+
+    console.log('Response body:', responseBody);
+
+    const parsedUrl = url.parse(event.ResponseURL);
+    const options = {
+      hostname: parsedUrl.hostname,
+      port: 443,
+      path: parsedUrl.path,
+      method: 'PUT',
+      headers: {
+        'content-type': '',
+        'content-length': responseBody.length
+      }
+    };
+
+    const request = https.request(options, (response) => {
+      console.log('Status code:', response.statusCode);
+      console.log('Status message:', response.statusMessage);
+      resolve();
+    });
+
+    request.on('error', (error) => {
+      console.log('send(..) failed executing https.request(..):', error);
+      reject(error);
+    });
+
+    request.write(responseBody);
+    request.end();
+  });
+}
+
+exports.handler = async (event, context) => {
   console.log('AWS Exports Generator Event:', JSON.stringify(event, null, 2));
 
-  if (event.RequestType === 'Delete') {
-    return { Status: 'SUCCESS', PhysicalResourceId: 'aws-exports-generator' };
-  }
-
   try {
+    if (event.RequestType === 'Delete') {
+      await sendResponse(event, context, 'SUCCESS', {}, 'aws-exports-generator');
+      return;
+    }
+
     const models = JSON.parse(process.env.MODELS || '[]');
     
     const awsExports = {
@@ -146,21 +190,14 @@ export default awsExports;
 
     console.log('Generated AWS Exports configuration');
     
-    return { 
-      Status: 'SUCCESS', 
-      PhysicalResourceId: 'aws-exports-generator',
-      Data: {
-        ConfigGenerated: 'true',
-        ConfigContent: configContent
-      }
-    };
+    await sendResponse(event, context, 'SUCCESS', {
+      ConfigGenerated: 'true',
+      ConfigContent: configContent
+    }, 'aws-exports-generator');
+
   } catch (error) {
     console.error('Error generating AWS exports:', error);
-    return { 
-      Status: 'FAILED', 
-      PhysicalResourceId: 'aws-exports-generator', 
-      Reason: error.message 
-    };
+    await sendResponse(event, context, 'FAILED', {}, 'aws-exports-generator');
   }
 };
 `;
