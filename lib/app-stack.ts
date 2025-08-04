@@ -883,7 +883,7 @@ export class AppStack extends cdk.Stack {
       functionName: `${props.appName}-${props.stage}-cognito-admin`,
       runtime: lambda.Runtime.NODEJS_18_X,
       handler: 'cognito-admin.handler',
-      code: lambda.Code.fromAsset('lib/lambda'),
+      code: lambda.Code.fromAsset('lib/lambda/dist'),
       environment: {
         USER_POOL_ID: this.userPool.userPoolId
       },
