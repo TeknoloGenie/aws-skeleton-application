@@ -183,34 +183,6 @@ export class PipelineStack extends cdk.Stack {
           ],
         },
         {
-          stageName: 'Deploy_Dev',
-          actions: [
-            new codepipeline_actions.CodeBuildAction({
-              actionName: 'Verify_Deployment',
-              project: new codebuild.Project(this, 'VerifyProject', {
-                projectName: `${props.appName}-verify`,
-                source: codebuild.Source.codePipeline(),
-                environment: {
-                  buildImage: codebuild.LinuxBuildImage.STANDARD_7_0,
-                  computeType: codebuild.ComputeType.SMALL,
-                },
-                buildSpec: codebuild.BuildSpec.fromObject({
-                  version: '0.2',
-                  phases: {
-                    build: {
-                      commands: [
-                        'echo "Deployment completed in build stage"',
-                        'aws cloudformation describe-stacks --stack-name SkeletonApp-dev --region us-east-1',
-                      ],
-                    },
-                  },
-                }),
-              }),
-              input: buildOutput,
-            }),
-          ],
-        },
-        {
           stageName: 'Deploy_Test',
           actions: [
             new codepipeline_actions.CloudFormationCreateUpdateStackAction({
