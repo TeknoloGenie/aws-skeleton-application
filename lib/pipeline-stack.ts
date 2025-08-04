@@ -81,8 +81,8 @@ export class PipelineStack extends cdk.Stack {
             commands: [
               'npm run build',
               `cdk synth --context appName=${props.appName} --context stage=dev`,
-              `cd cdk.out && ls -la`,
-              `cdk deploy ${props.appName}-dev --context appName=${props.appName} --context stage=dev --require-approval never --outputs-file /tmp/stack-outputs.json`,
+              'echo "Listing synthesized files:"',
+              'ls -la cdk.out/',
             ],
           },
         },
@@ -153,6 +153,14 @@ export class PipelineStack extends cdk.Stack {
     const sourceOutput = new codepipeline.Artifact('SourceOutput');
     const buildOutput = new codepipeline.Artifact('BuildOutput');
 
+    // Create deploy role for dev deployment
+    const deployRole = new iam.Role(this, 'DeployRole', {
+      assumedBy: new iam.ServicePrincipal('codebuild.amazonaws.com'),
+      managedPolicies: [
+        iam.ManagedPolicy.fromAwsManagedPolicyName('PowerUserAccess'),
+      ],
+    });
+
     // Create pipeline
     const pipeline = new codepipeline.Pipeline(this, 'Pipeline', {
       pipelineName: `${props.appName}-pipeline`,
@@ -179,6 +187,48 @@ export class PipelineStack extends cdk.Stack {
               project: buildProject,
               input: sourceOutput,
               outputs: [buildOutput],
+            }),
+          ],
+        },
+        {
+          stageName: 'Deploy_Dev',
+          actions: [
+            new codepipeline_actions.CodeBuildAction({
+              actionName: 'Deploy_Dev',
+              project: new codebuild.Project(this, 'DeployDevProject', {
+                projectName: `${props.appName}-deploy-dev`,
+                source: codebuild.Source.gitHub({
+                  owner: 'TeknoloGenie',
+                  repo: 'aws-skeleton-application',
+                }),
+                environment: {
+                  buildImage: codebuild.LinuxBuildImage.STANDARD_7_0,
+                  computeType: codebuild.ComputeType.SMALL,
+                  privileged: true,
+                },
+                role: deployRole,
+                buildSpec: codebuild.BuildSpec.fromObject({
+                  version: '0.2',
+                  phases: {
+                    install: {
+                      'runtime-versions': {
+                        nodejs: '18',
+                      },
+                      commands: [
+                        'npm install -g aws-cdk',
+                        'npm ci',
+                      ],
+                    },
+                    build: {
+                      commands: [
+                        'npm run build',
+                        `cdk deploy ${props.appName}-dev --context appName=${props.appName} --context stage=dev --require-approval never`,
+                      ],
+                    },
+                  },
+                }),
+              }),
+              input: sourceOutput,
             }),
           ],
         },
