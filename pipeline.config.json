@@ -1,7 +1,7 @@
 {
   "github": {
-    "owner": "your-github-username",
-    "repo": "skeleton-application",
+    "owner": "TeknoloGenie",
+    "repo": "aws-skeleton-application",
     "branches": {
       "develop": "develop",
       "main": "main"
