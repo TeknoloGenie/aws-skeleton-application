@@ -26,8 +26,8 @@ export class AwsExportsGeneratorConstruct extends Construct {
     const generatorFunction = new lambda.Function(this, 'AwsExportsGenerator', {
       functionName: `${props.appName}-${props.stage}-aws-exports-generator`,
       runtime: lambda.Runtime.NODEJS_18_X,
-      handler: 'aws-exports-generator.handler',
-      code: lambda.Code.fromAsset('lib/lambda'),
+      handler: 'index.handler',
+      code: lambda.Code.fromInline(this.generateAwsExportsCode()),
       timeout: cdk.Duration.minutes(5),
       layers: props.layers,
       environment: {
@@ -97,5 +97,72 @@ export class AwsExportsGeneratorConstruct extends Construct {
     }));
     
     return Buffer.from(JSON.stringify(modelSummary)).toString('base64');
+  }
+
+  private generateAwsExportsCode(): string {
+    return `
+const fs = require('fs');
+const path = require('path');
+
+exports.handler = async (event) => {
+  console.log('AWS Exports Generator Event:', JSON.stringify(event, null, 2));
+
+  if (event.RequestType === 'Delete') {
+    return { Status: 'SUCCESS', PhysicalResourceId: 'aws-exports-generator' };
+  }
+
+  try {
+    const models = JSON.parse(process.env.MODELS || '[]');
+    
+    const awsExports = {
+      aws_project_region: process.env.AWS_REGION,
+      aws_cognito_region: process.env.AWS_REGION,
+      aws_user_pools_id: process.env.USER_POOL_ID,
+      aws_user_pools_web_client_id: process.env.USER_POOL_CLIENT_ID,
+      oauth: {},
+      aws_cognito_username_attributes: ['email'],
+      aws_cognito_social_providers: [],
+      aws_cognito_signup_attributes: ['email'],
+      aws_cognito_mfa_configuration: 'OFF',
+      aws_cognito_mfa_types: ['SMS'],
+      aws_cognito_password_protection_settings: {
+        passwordPolicyMinLength: 8,
+        passwordPolicyCharacters: []
+      },
+      aws_cognito_verification_mechanisms: ['email'],
+      aws_appsync_graphqlEndpoint: process.env.GRAPHQL_API_URL,
+      aws_appsync_region: process.env.AWS_REGION,
+      aws_appsync_authenticationType: 'AMAZON_COGNITO_USER_POOLS',
+      aws_appsync_apiKey: null,
+      aws_admin_api_url: process.env.ADMIN_API_URL,
+      models: models,
+      app_name: process.env.APP_NAME,
+      stage: process.env.STAGE
+    };
+
+    const configContent = \`const awsExports = \${JSON.stringify(awsExports, null, 2)};
+export default awsExports;
+\`;
+
+    console.log('Generated AWS Exports configuration');
+    
+    return { 
+      Status: 'SUCCESS', 
+      PhysicalResourceId: 'aws-exports-generator',
+      Data: {
+        ConfigGenerated: 'true',
+        ConfigContent: configContent
+      }
+    };
+  } catch (error) {
+    console.error('Error generating AWS exports:', error);
+    return { 
+      Status: 'FAILED', 
+      PhysicalResourceId: 'aws-exports-generator', 
+      Reason: error.message 
+    };
+  }
+};
+`;
   }
 }
