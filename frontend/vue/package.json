@@ -10,25 +10,26 @@
     "type-check": "vue-tsc --noEmit"
   },
   "dependencies": {
-    "vue": "^3.3.4",
-    "vue-router": "^4.2.4",
-    "@aws-amplify/ui-vue": "^4.3.3",
-    "aws-amplify": "^6.0.0",
     "@apollo/client": "^3.8.0",
+    "@aws-amplify/ui-vue": "^4.3.3",
+    "@vue/apollo-composable": "^4.2.2",
+    "aws-amplify": "^6.0.0",
     "graphql": "^16.8.0",
-    "graphql-tag": "^2.12.6"
+    "graphql-tag": "^2.12.6",
+    "vue": "^3.3.4",
+    "vue-router": "^4.2.4"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^4.3.4",
     "@vue/eslint-config-typescript": "^11.0.3",
     "@vue/tsconfig": "^0.4.0",
+    "autoprefixer": "^10.4.15",
     "eslint": "^8.49.0",
     "eslint-plugin-vue": "^9.17.0",
+    "postcss": "^8.4.29",
+    "tailwindcss": "^3.3.3",
     "typescript": "~5.1.6",
     "vite": "^4.4.9",
-    "vue-tsc": "^1.8.8",
-    "tailwindcss": "^3.3.3",
-    "autoprefixer": "^10.4.15",
-    "postcss": "^8.4.29"
+    "vue-tsc": "^1.8.8"
   }
 }

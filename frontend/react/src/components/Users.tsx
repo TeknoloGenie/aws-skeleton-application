@@ -1,8 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { useQuery, useMutation } from '@apollo/client';
+import { useMutation, useQuery } from '@apollo/client';
 import { fetchAuthSession } from '@aws-amplify/auth';
-import { LIST_USERS, CREATE_USER, UPDATE_USER } from '../graphql/queries';
-
+import React, { useCallback, useEffect, useState } from 'react';
+import { CREATE_USER, DELETE_USER, LIST_USERS, UPDATE_USER } from '../graphql/queries';
 interface CognitoUser {
   Username: string;
   UserStatus: string;
@@ -28,11 +27,20 @@ interface UserForm {
   role: string;
 }
 
+interface CognitoUserForm {
+  email: string;
+  givenName: string;
+  familyName: string;
+  temporaryPassword: string;
+  sendEmail: boolean;
+}
+
 const Users: React.FC = () => {
   const [cognitoUsers, setCognitoUsers] = useState<CognitoUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [showDialog, setShowDialog] = useState(false);
+  const [showCreateCognitoDialog, setShowCreateCognitoDialog] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [selectedCognitoUser, setSelectedCognitoUser] = useState<CognitoUser | null>(null);
@@ -44,6 +52,14 @@ const Users: React.FC = () => {
     role: 'user'
   });
 
+  const [cognitoUserForm, setCognitoUserForm] = useState<CognitoUserForm>({
+    email: '',
+    givenName: '',
+    familyName: '',
+    temporaryPassword: '',
+    sendEmail: true
+  });
+
   // GraphQL queries and mutations
   const { data: userRecordsData, refetch: refetchUserRecords } = useQuery(LIST_USERS, {
     fetchPolicy: 'network-only'
@@ -51,14 +67,11 @@ const Users: React.FC = () => {
 
   const [createUserMutation] = useMutation(CREATE_USER);
   const [updateUserMutation] = useMutation(UPDATE_USER);
+  const [deleteUserMutation] = useMutation(DELETE_USER);
 
   const userRecords = userRecordsData?.listUsers || [];
 
-  useEffect(() => {
-    loadUsers();
-  }, []);
-
-  const loadUsers = async () => {
+  const loadUsers = useCallback(async () => {
     setLoading(true);
     setError('');
     
@@ -67,29 +80,38 @@ const Users: React.FC = () => {
         loadCognitoUsers(),
         refetchUserRecords()
       ]);
-    } catch (err: any) {
-      setError(err.message || 'Failed to load users');
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to load users';
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
-  };
+  }, [refetchUserRecords]);
+
+  useEffect(() => {
+    loadUsers();
+  }, [loadUsers]);
 
   const loadCognitoUsers = async () => {
     try {
       const session = await fetchAuthSession();
-      const token = session.tokens?.accessToken?.toString();
+      // Use ID token for group information, fallback to access token
+      const token = session.tokens?.idToken?.toString() || session.tokens?.accessToken?.toString();
       
       if (!token) {
         throw new Error('No authentication token available');
       }
 
+      console.log('Using token type:', session.tokens?.idToken ? 'ID Token' : 'Access Token');
+
       // Get admin API URL from aws-exports
       let adminApiUrl = '';
       try {
-        const awsExports = (await import('../aws-exports.js')).default;
+        // @ts-expect-error we know this file exists so we ignore
+        const { default: awsExports } = await import('../aws-exports.js');
         adminApiUrl = awsExports.aws_admin_api_endpoint || '';
       } catch (error) {
-        console.warn('Could not load aws-exports, using relative URL');
+        console.warn('Could not load aws-exports, using relative URL', error);
       }
 
       const apiUrl = adminApiUrl ? `${adminApiUrl}api/admin/cognito/users` : '/api/admin/cognito/users';
@@ -102,15 +124,30 @@ const Users: React.FC = () => {
         }
       });
 
+      console.log('API Response status:', response.status);
+      console.log('API Response headers:', Object.fromEntries(response.headers.entries()));
+
       if (!response.ok) {
-        throw new Error(`Failed to fetch Cognito users: ${response.statusText}`);
+        const errorText = await response.text();
+        console.log('API Error response:', errorText);
+        
+        let errorData;
+        try {
+          errorData = JSON.parse(errorText);
+        } catch (parseError) {
+          console.error('Error parsing error response:', parseError);
+          errorData = { message: errorText };
+        }
+        
+        throw new Error(`Failed to fetch Cognito users: ${response.status} ${response.statusText}. ${errorData.error || errorData.message || ''}`);
       }
 
       const data = await response.json();
       setCognitoUsers(data.users || []);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error loading Cognito users:', err);
-      throw new Error(`Failed to load Cognito users: ${err.message}`);
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+      throw new Error(`Failed to load Cognito users: ${errorMessage}`);
     }
   };
 
@@ -242,23 +279,177 @@ const Users: React.FC = () => {
       // Refetch user records to update the UI
       await refetchUserRecords();
       closeDialog();
-    } catch (err: any) {
-      setError(err.message || 'Failed to save user record');
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to save user record';
+      setError(errorMessage);
     } finally {
       setSubmitting(false);
     }
   };
 
-  const viewUserDetails = (cognitoUser: CognitoUser) => {
-    console.log('View user details:', cognitoUser);
-    // TODO: Navigate to user detail page or show detailed modal
+  const createCognitoUser = async (formData: CognitoUserForm) => {
+    try {
+      const session = await fetchAuthSession();
+      const token = session.tokens?.idToken?.toString() || session.tokens?.accessToken?.toString();
+      
+      if (!token) {
+        throw new Error('No authentication token available');
+      }
+
+
+      // @ts-expect-error we know this file exists so we ignore
+      const { default: awsExports } = await import('../aws-exports.js');
+      const adminApiUrl = awsExports.aws_admin_api_endpoint || '';
+      const apiUrl = `${adminApiUrl}api/admin/cognito/users`;
+
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          email: formData.email,
+          givenName: formData.givenName,
+          familyName: formData.familyName,
+          temporaryPassword: formData.temporaryPassword,
+          sendEmail: formData.sendEmail
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to create Cognito user');
+      }
+
+      return await response.json();
+    } catch (err: unknown) {
+      console.error('Error creating Cognito user:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+      throw new Error(`Failed to create Cognito user: ${errorMessage}`);
+    }
+  };
+
+  const deleteCognitoUser = async (username: string) => {
+    try {
+      const session = await fetchAuthSession();
+      const token = session.tokens?.idToken?.toString() || session.tokens?.accessToken?.toString();
+      
+      if (!token) {
+        throw new Error('No authentication token available');
+      }
+
+      // @ts-expect-error we know this file exists so we ignore
+      const { default: awsExports } = await import('../aws-exports.js');
+      const adminApiUrl = awsExports.aws_admin_api_endpoint || '';
+      const apiUrl = `${adminApiUrl}api/admin/cognito/users/${username}`;
+
+      const response = await fetch(apiUrl, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to delete Cognito user');
+      }
+
+      return await response.json();
+    } catch (err: unknown) {
+      console.error('Error deleting Cognito user:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+      throw new Error(`Failed to delete Cognito user: ${errorMessage}`);
+    }
+  };
+
+  const openCreateCognitoDialog = () => {
+    setCognitoUserForm({
+      email: '',
+      givenName: '',
+      familyName: '',
+      temporaryPassword: 'TempPass123!',
+      sendEmail: true
+    });
+    setShowCreateCognitoDialog(true);
+  };
+
+  const closeCreateCognitoDialog = () => {
+    setShowCreateCognitoDialog(false);
+    setCognitoUserForm({
+      email: '',
+      givenName: '',
+      familyName: '',
+      temporaryPassword: '',
+      sendEmail: true
+    });
+  };
+
+  const submitCognitoUserForm = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmitting(true);
+    
+    try {
+      await createCognitoUser(cognitoUserForm);
+      await loadCognitoUsers(); // Refresh the list
+      closeCreateCognitoDialog();
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to create Cognito user';
+      setError(errorMessage);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleDeleteCognitoUser = async (cognitoUser: CognitoUser) => {
+    if (!confirm(`Are you sure you want to delete user "${getUserDisplayName(cognitoUser)}"? This action cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      // First delete the User record if it exists
+      const existingRecord = userRecords.find((record: UserRecord) => record.cognitoId === cognitoUser.Username);
+      if (existingRecord) {
+        await deleteUserMutation({
+          variables: {
+            input: {
+              id: existingRecord.id
+            }
+          }
+        });
+      }
+
+      // Then delete the Cognito user
+      await deleteCognitoUser(cognitoUser.Username);
+      
+      // Refresh both lists
+      await Promise.all([
+        loadCognitoUsers(),
+        refetchUserRecords()
+      ]);
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to delete user';
+      setError(errorMessage);
+    }
   };
 
   return (
     <div className="p-6">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Users</h1>
-        <p className="text-gray-600 mt-2">Manage Cognito users and their application profiles</p>
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Users</h1>
+            <p className="text-gray-600 mt-2">Manage Cognito users and their application profiles</p>
+          </div>
+          <button
+            onClick={openCreateCognitoDialog}
+            className="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200"
+          >
+            Create User
+          </button>
+        </div>
       </div>
 
       {/* Error State */}
@@ -373,10 +564,10 @@ const Users: React.FC = () => {
                           </button>
                         )}
                         <button
-                          onClick={() => viewUserDetails(cognitoUser)}
-                          className="text-blue-600 hover:text-blue-900 ml-2"
+                          onClick={() => handleDeleteCognitoUser(cognitoUser)}
+                          className="bg-red-600 text-white px-3 py-1 rounded-md hover:bg-red-700 transition-colors"
                         >
-                          View
+                          Delete
                         </button>
                       </td>
                     </tr>
@@ -469,6 +660,108 @@ const Users: React.FC = () => {
                     className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50"
                   >
                     {submitting ? 'Saving...' : (isEditing ? 'Update' : 'Create')}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Create Cognito User Dialog */}
+      {showCreateCognitoDialog && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+          <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+            <div className="mt-3">
+              <h3 className="text-lg font-medium text-gray-900 mb-4">
+                Create New Cognito User
+              </h3>
+              
+              <form onSubmit={submitCognitoUserForm}>
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Email *
+                  </label>
+                  <input
+                    type="email"
+                    required
+                    value={cognitoUserForm.email}
+                    onChange={(e) => setCognitoUserForm(prev => ({ ...prev, email: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="user@example.com"
+                  />
+                </div>
+
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    First Name *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={cognitoUserForm.givenName}
+                    onChange={(e) => setCognitoUserForm(prev => ({ ...prev, givenName: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="John"
+                  />
+                </div>
+
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Last Name *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={cognitoUserForm.familyName}
+                    onChange={(e) => setCognitoUserForm(prev => ({ ...prev, familyName: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="Doe"
+                  />
+                </div>
+
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Temporary Password *
+                  </label>
+                  <input
+                    type="password"
+                    required
+                    value={cognitoUserForm.temporaryPassword}
+                    onChange={(e) => setCognitoUserForm(prev => ({ ...prev, temporaryPassword: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="TempPass123!"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    User will be required to change this on first login
+                  </p>
+                </div>
+
+                <div className="mb-4">
+                  <label className="flex items-center">
+                    <input
+                      type="checkbox"
+                      checked={cognitoUserForm.sendEmail}
+                      onChange={(e) => setCognitoUserForm(prev => ({ ...prev, sendEmail: e.target.checked }))}
+                      className="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+                    />
+                    <span className="ml-2 text-sm text-gray-700">Send welcome email to user</span>
+                  </label>
+                </div>
+
+                <div className="flex justify-end space-x-3">
+                  <button
+                    type="button"
+                    onClick={closeCreateCognitoDialog}
+                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={submitting}
+                    className="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700 transition-colors disabled:opacity-50"
+                  >
+                    {submitting ? 'Creating...' : 'Create User'}
                   </button>
                 </div>
               </form>

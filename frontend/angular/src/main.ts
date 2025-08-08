@@ -11,7 +11,7 @@ async function initializeApp() {
   try {
     awsExports = (await import('./aws-exports.js')).default;
     console.log('Using generated AWS configuration');
-  } catch (error) {
+  } catch {
     console.warn('Generated AWS configuration not found, using fallback configuration');
     // Fallback configuration for local development using Amplify v6 format
     awsExports = {

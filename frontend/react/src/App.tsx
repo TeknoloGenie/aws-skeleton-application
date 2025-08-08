@@ -50,11 +50,19 @@ const formFields = {
   },
 };
 
+// User interface
+interface User {
+  signInDetails?: {
+    loginId?: string;
+  };
+  username?: string;
+}
+
 // Sidebar Navigation Component
-const Sidebar: React.FC<{ user: any; signOut: () => void }> = ({ user, signOut }) => {
+const Sidebar: React.FC<{ user: User; signOut: () => void }> = ({ user, signOut }) => {
   const location = useLocation();
   
-  const getUserInitials = (user: any): string => {
+  const getUserInitials = (user: User): string => {
     const email = user.signInDetails?.loginId || user.username || '';
     return email.charAt(0).toUpperCase();
   };

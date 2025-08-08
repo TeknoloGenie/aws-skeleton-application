@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { fetchAuthSession } from '@aws-amplify/auth';
@@ -9,7 +9,7 @@ interface CognitoUser {
   Username: string;
   UserStatus: string;
   UserCreateDate: string;
-  Attributes: Array<{ Name: string; Value: string }>;
+  Attributes: { Name: string; Value: string }[];
 }
 
 interface UserRecord {
@@ -263,6 +263,8 @@ interface UserForm {
   `]
 })
 export class UsersComponent implements OnInit {
+  private graphqlClient = inject(GraphQLClientService);
+
   cognitoUsers: CognitoUser[] = [];
   userRecords: UserRecord[] = [];
   loading = true;
@@ -279,8 +281,6 @@ export class UsersComponent implements OnInit {
     role: 'user'
   };
 
-  constructor(private graphqlClient: GraphQLClientService) {}
-
   ngOnInit() {
     this.loadUsers();
   }
@@ -294,8 +294,8 @@ export class UsersComponent implements OnInit {
         this.loadCognitoUsers(),
         this.loadUserRecords()
       ]);
-    } catch (err: any) {
-      this.error = err.message || 'Failed to load users';
+    } catch (err: unknown) {
+      this.error = err instanceof Error ? err.message : 'Failed to load users';
     } finally {
       this.loading = false;
     }
@@ -315,7 +315,7 @@ export class UsersComponent implements OnInit {
       try {
         const awsExports = (await import('../../../aws-exports.js')).default;
         adminApiUrl = awsExports.aws_admin_api_endpoint || '';
-      } catch (error) {
+      } catch {
         console.warn('Could not load aws-exports, using relative URL');
       }
 
@@ -335,9 +335,10 @@ export class UsersComponent implements OnInit {
 
       const data = await response.json();
       this.cognitoUsers = data.users || [];
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error loading Cognito users:', err);
-      throw new Error(`Failed to load Cognito users: ${err.message}`);
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+      throw new Error(`Failed to load Cognito users: ${errorMessage}`);
     }
   }
 
@@ -345,9 +346,10 @@ export class UsersComponent implements OnInit {
     try {
       const result = await this.graphqlClient.query(listUsers, {});
       this.userRecords = result.data?.listUsers || [];
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error loading User records:', err);
-      throw new Error(`Failed to load User records: ${err.message}`);
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+      throw new Error(`Failed to load User records: ${errorMessage}`);
     }
   }
 
@@ -481,8 +483,8 @@ export class UsersComponent implements OnInit {
       }
       
       this.closeDialog();
-    } catch (err: any) {
-      this.error = err.message || 'Failed to save user record';
+    } catch (err: unknown) {
+      this.error = err instanceof Error ? err.message : 'Failed to save user record';
     } finally {
       this.submitting = false;
     }

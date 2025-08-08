@@ -1,8 +1,15 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 
+interface User {
+  signInDetails?: {
+    loginId?: string;
+  };
+  username?: string;
+}
+
 interface NavigationProps {
-  user: any;
+  user: User;
   signOut: () => void;
 }
 

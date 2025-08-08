@@ -34,7 +34,7 @@ const loginGuard = async () => {
     } else {
       return true;
     }
-  } catch (error) {
+  } catch {
     // User is not authenticated, allow access to login page
     return true;
   }

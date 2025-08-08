@@ -65,8 +65,10 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { apolloClient } from '../graphql/client'
+import { generateClient } from 'aws-amplify/api'
 import { listPosts } from '../graphql/queries'
+
+const client = generateClient()
 
 interface Post {
   id: string
@@ -92,7 +94,7 @@ const getUserName = (userId: string) => {
 const loadPosts = async () => {
   try {
     loading.value = true
-    const result = await API.graphql({
+    const result = await client.graphql({
       query: listPosts as any
     }) as any
     
