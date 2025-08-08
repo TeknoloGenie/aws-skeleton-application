@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { fetchAuthSession } from '@aws-amplify/auth';
@@ -78,6 +78,9 @@ import { AmplifyAuthenticatorModule, AuthenticatorService } from '@aws-amplify/u
   `]
 })
 export class LoginComponent implements OnInit {
+  private router = inject(Router);
+  authenticator = inject(AuthenticatorService);
+
   // Custom form fields for sign up (matching Vue implementation)
   formFields = {
     signUp: {
@@ -114,11 +117,6 @@ export class LoginComponent implements OnInit {
     },
   };
 
-  constructor(
-    private router: Router,
-    public authenticator: AuthenticatorService
-  ) {}
-
   async ngOnInit() {
     // Check if user is already authenticated
     try {
@@ -126,7 +124,7 @@ export class LoginComponent implements OnInit {
       if (session.tokens?.accessToken) {
         this.router.navigate(['/dashboard']);
       }
-    } catch (error) {
+    } catch {
       // User is not authenticated, stay on login page
       console.log('User not authenticated');
     }
@@ -140,7 +138,7 @@ export class LoginComponent implements OnInit {
     });
   }
 
-  getUserDisplayName(user: any): string {
+  getUserDisplayName(user: { signInDetails?: { loginId?: string }; username?: string }): string {
     return user?.signInDetails?.loginId || user?.username || 'User';
   }
 

@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router, NavigationEnd } from '@angular/router';
 import { filter } from 'rxjs/operators';
@@ -14,11 +14,13 @@ import { LoadingComponent } from './components/loading/loading.component';
   styleUrls: ['./app.scss']
 })
 export class App implements OnInit {
+  private router = inject(Router);
+
   loading = true;
   isLoginPage = false;
   isMobile = false;
 
-  constructor(private router: Router) {
+  constructor() {
     this.checkMobile();
     window.addEventListener('resize', () => this.checkMobile());
   }

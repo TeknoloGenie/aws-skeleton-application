@@ -1,9 +1,9 @@
-import { SQSEvent, SQSRecord } from 'aws-lambda';
-import { SecretsManagerClient, GetSecretValueCommand } from '@aws-sdk/client-secrets-manager';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
-import { DynamoDBDocumentClient, PutCommand, GetCommand } from '@aws-sdk/lib-dynamodb';
-import * as https from 'https';
+import { GetSecretValueCommand, SecretsManagerClient } from '@aws-sdk/client-secrets-manager';
+import { DynamoDBDocumentClient, PutCommand } from '@aws-sdk/lib-dynamodb';
+import { SQSEvent, SQSRecord } from 'aws-lambda';
 import * as http from 'http';
+import * as https from 'https';
 
 interface ApiRequest {
   method: string;
@@ -13,7 +13,7 @@ interface ApiRequest {
   requestId: string;
   operation: string;
   model: string;
-  args: any;
+  args: object;
 }
 
 interface RateLimitConfig {
@@ -24,13 +24,14 @@ interface RateLimitConfig {
 interface ApiCredentials {
   apiKey?: string;
   authToken?: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   [key: string]: any;
 }
 
 interface JobResult {
   requestId: string;
   status: 'PENDING' | 'COMPLETED' | 'FAILED';
-  result?: any;
+  result?: object;
   error?: string;
   completedAt?: string;
 }
@@ -43,9 +44,9 @@ const dynamodb = DynamoDBDocumentClient.from(dynamoClient);
 const rateLimitStore = new Map<string, { count: number; resetTime: number }>();
 
 export const handler = async (event: SQSEvent): Promise<void> => {
-  const secretName = process.env.SECRET_NAME!;
-  const apiEndpoint = process.env.API_ENDPOINT!;
-  const jobResultsTable = process.env.JOB_RESULTS_TABLE!;
+  const secretName = process.env.SECRET_NAME || "NO_SECRET_NAME_FOUND";
+  const apiEndpoint = process.env.API_ENDPOINT || "NO_API_ENDPOINT_FOUND";
+  const jobResultsTable = process.env.JOB_RESULTS_TABLE || "NO_JOB_RESULTS_TABLE_FOUND";
   const rateLimitConfig: RateLimitConfig = {
     frequencyInSeconds: parseInt(process.env.FREQUENCY_IN_SECONDS || '60'),
     limit: parseInt(process.env.LIMIT || '100')
@@ -151,6 +152,7 @@ function makeHttpRequest(
   endpoint: string,
   request: ApiRequest,
   credentials: ApiCredentials
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 ): Promise<any> {
   return new Promise((resolve, reject) => {
     const url = new URL(endpoint + request.path);

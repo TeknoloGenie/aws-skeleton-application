@@ -26,7 +26,7 @@ const awsmobile = {
   "aws_appsync_authenticationType": "AMAZON_COGNITO_USER_POOLS",
   "aws_appsync_apiKey": "",
   "aws_appsync_realTimeEndpoint": "wss://flg6yzpmyrhfpdgt4pgwpzdmvy.appsync-realtime-api.us-east-1.amazonaws.com/graphql",
-  "aws_admin_api_url": "https://r7z036v2ef.execute-api.us-east-1.amazonaws.com/prod/",
+  "aws_admin_api_endpoint": "https://r7z036v2ef.execute-api.us-east-1.amazonaws.com/prod/",
   "models": [
     {
       "name": "GeoData",
@@ -44,7 +44,7 @@ const awsmobile = {
       "hasRateLimit": false
     }
   ],
-  "generated_at": "2025-08-04T05:30:00.000Z",
+  "generated_at": "2025-08-04T07:30:00.000Z",
   "api_id": "yzzbiffx4ral7n3bshz76qfd6e"
 };
 

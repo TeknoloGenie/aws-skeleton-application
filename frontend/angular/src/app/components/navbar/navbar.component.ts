@@ -1,8 +1,9 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
 import { getCurrentUser, signOut as amplifySignOut, fetchAuthSession } from '@aws-amplify/auth';
 import { AuthenticatorService } from '@aws-amplify/ui-angular';
+import { Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-navbar',
@@ -89,16 +90,14 @@ import { AuthenticatorService } from '@aws-amplify/ui-angular';
   `]
 })
 export class NavbarComponent implements OnInit, OnDestroy {
+  private router = inject(Router);
+  private authenticator = inject(AuthenticatorService);
+
   userName = '';
   userEmail = '';
   userInitials = '';
   displayName = '';
-  private authSubscription: any; // Use any type to avoid Subscription type conflicts
-
-  constructor(
-    private router: Router,
-    private authenticator: AuthenticatorService
-  ) {}
+  private authSubscription?: Subscription;
 
   async ngOnInit() {
     // Wait a bit for authentication to settle

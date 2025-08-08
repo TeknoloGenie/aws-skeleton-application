@@ -5,7 +5,7 @@ import { fetchAuthSession, getCurrentUser as amplifyGetCurrentUser, signOut as a
   providedIn: 'root'
 })
 export class GraphQLClientService {
-  private endpoint: string = '';
+  private endpoint = '';
 
   constructor() {
     this.initializeClient();
@@ -13,18 +13,18 @@ export class GraphQLClientService {
 
   private async initializeClient() {
     // Import AWS configuration
-    let awsExports: any;
+    let awsExports: Record<string, any>;
     try {
       awsExports = (await import('../../aws-exports.js')).default;
       this.endpoint = awsExports.API?.GraphQL?.endpoint || awsExports.aws_appsync_graphqlEndpoint || '';
-    } catch (error) {
+    } catch {
       console.warn('AWS exports not found, using fallback configuration');
       this.endpoint = 'https://localhost:3000/graphql';
     }
   }
 
   // Simple GraphQL query method
-  async query(query: string, variables?: any) {
+  async query(query: string, variables?: Record<string, any>) {
     try {
       const session = await fetchAuthSession();
       const token = session.tokens?.idToken?.toString();
@@ -46,7 +46,7 @@ export class GraphQLClientService {
       if (result.errors) {
         console.error('GraphQL errors:', result.errors);
         // Handle authentication errors
-        if (result.errors.some((error: any) => 
+        if (result.errors.some((error: { message: string }) => 
           error.message.includes('Unauthorized') || error.message.includes('Authentication')
         )) {
           console.log('Authentication error detected, signing out...');

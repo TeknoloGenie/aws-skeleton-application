@@ -33,7 +33,7 @@ const authLink = setContext(async (_, { headers }) => {
 });
 
 // Error handling link
-const errorLink = onError(({ graphQLErrors, networkError, operation, forward }) => {
+const errorLink = onError(({ graphQLErrors, networkError }) => {
   if (graphQLErrors) {
     graphQLErrors.forEach(({ message, locations, path }) =>
       console.log(
@@ -61,12 +61,12 @@ export const apolloClient = new ApolloClient({
       Query: {
         fields: {
           listUsers: {
-            merge(existing = [], incoming) {
+            merge(_, incoming) {
               return incoming;
             },
           },
           listPosts: {
-            merge(existing = [], incoming) {
+            merge(_, incoming) {
               return incoming;
             },
           },

@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable, from, throwError } from 'rxjs';
 import { map, catchError, switchMap } from 'rxjs/operators';
@@ -29,9 +29,9 @@ export interface Post {
   providedIn: 'root'
 })
 export class GraphqlService {
-  private readonly graphqlEndpoint = awsExports.aws_appsync_graphqlEndpoint;
+  private http = inject(HttpClient);
 
-  constructor(private http: HttpClient) {}
+  private readonly graphqlEndpoint = awsExports.aws_appsync_graphqlEndpoint;
 
   private async getAuthHeaders(): Promise<HttpHeaders> {
     try {
@@ -50,7 +50,7 @@ export class GraphqlService {
     }
   }
 
-  private executeQuery<T>(query: string, variables?: any): Observable<T> {
+  private executeQuery<T>(query: string, variables?: Record<string, any>): Observable<T> {
     return from(this.getAuthHeaders()).pipe(
       switchMap(headers => {
         const body = {
@@ -58,7 +58,7 @@ export class GraphqlService {
           variables: variables || {}
         };
 
-        return this.http.post<{ data: T; errors?: any[] }>(
+        return this.http.post<{ data: T; errors?: { message: string }[] }>(
           this.graphqlEndpoint,
           body,
           { headers }

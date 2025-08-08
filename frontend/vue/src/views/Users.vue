@@ -221,7 +221,7 @@ interface CognitoUser {
   Attributes: Array<{ Name: string; Value: string }>
 }
 
-interface UserRecord {
+interface User {
   id: string
   name: string
   email: string
@@ -370,7 +370,7 @@ const getStatusBadgeClass = (cognitoUser: CognitoUser): string => {
 }
 
 const hasUserRecord = (cognitoId: string): boolean => {
-  return userRecords.value.some(record => record.cognitoId === cognitoId)
+  return userRecords.value.some((record: User) => record.cognitoId === cognitoId)
 }
 
 const formatDate = (dateString: string): string => {
@@ -393,7 +393,7 @@ const openEditDialog = (cognitoUser: CognitoUser) => {
   selectedCognitoUser.value = cognitoUser
   isEditing.value = true
   
-  const existingRecord = userRecords.value.find(record => record.cognitoId === cognitoUser.Username)
+  const existingRecord = userRecords.value.find((record: User) => record.cognitoId === cognitoUser.Username)
   if (existingRecord) {
     userForm.value = {
       name: existingRecord.name,
@@ -425,7 +425,7 @@ const submitUserForm = async () => {
   try {
     if (isEditing.value) {
       // Update existing User record via GraphQL mutation
-      const existingRecord = userRecords.value.find(record => record.cognitoId === selectedCognitoUser.value!.Username)
+      const existingRecord = userRecords.value.find((record: User) => record.cognitoId === selectedCognitoUser.value!.Username)
       if (existingRecord) {
         await updateUserMutation({
           input: {
