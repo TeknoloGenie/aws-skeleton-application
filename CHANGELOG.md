@@ -5,6 +5,22 @@ All notable changes to the AWS Application Accelerator Framework will be documen
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - 2024-08-10
+
+### Added
+- **Code Requirement Rules**: New development workflow rules for mandatory debug logging
+- **Debugging Guide**: Comprehensive reference guide with debug patterns for Lambda, Frontend, and GraphQL
+- **Hybrid Rule System**: Concise actionable rules with detailed reference documentation
+- **Environment-based Debug Logging**: Standardized debug logging wrapped in `process.env.STAGE === 'development'` checks
+- **Debug Log Categories**: Structured logging with consistent prefixes ([DEBUG-ENTRY], [DEBUG-STATE], etc.)
+- **Production Safety Standards**: Guidelines to prevent sensitive data logging in production
+- **Testing Integration**: Debug log monitoring requirements during testing phase
+
+### Enhanced
+- **Development Workflow**: Improved development velocity through systematic debugging approach
+- **Code Quality**: Standardized debug logging patterns across all application components
+- **Documentation Structure**: Clear separation between actionable rules and comprehensive guides
+
 ## [Unreleased]
 
 ### Added
