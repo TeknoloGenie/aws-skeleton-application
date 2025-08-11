@@ -1,0 +1,95 @@
+[
+  {
+    "id": "setting-1",
+    "type": "user",
+    "key": "theme",
+    "value": {
+      "theme": "dark",
+      "primaryColor": "#3b82f6",
+      "fontSize": "medium"
+    },
+    "entityId": "user-1",
+    "description": "User interface theme preferences",
+    "isActive": true,
+    "createdAt": "2024-01-15T10:00:00.000Z",
+    "updatedAt": "2024-01-15T10:00:00.000Z"
+  },
+  {
+    "id": "setting-2",
+    "type": "user",
+    "key": "notifications",
+    "value": {
+      "email": true,
+      "push": false,
+      "sms": false,
+      "frequency": "daily"
+    },
+    "entityId": "user-1",
+    "description": "User notification preferences",
+    "isActive": true,
+    "createdAt": "2024-01-15T10:05:00.000Z",
+    "updatedAt": "2024-01-15T10:05:00.000Z"
+  },
+  {
+    "id": "setting-3",
+    "type": "user",
+    "key": "privacy",
+    "value": {
+      "profileVisibility": "public",
+      "showEmail": false,
+      "allowMessages": true
+    },
+    "entityId": "user-2",
+    "description": "User privacy settings",
+    "isActive": true,
+    "createdAt": "2024-01-15T11:00:00.000Z",
+    "updatedAt": "2024-01-15T11:00:00.000Z"
+  },
+  {
+    "id": "setting-4",
+    "type": "post",
+    "key": "visibility",
+    "value": {
+      "isPublic": true,
+      "allowComments": true,
+      "allowSharing": true,
+      "moderationLevel": "auto"
+    },
+    "entityId": "post-1",
+    "description": "Post visibility and interaction settings",
+    "isActive": true,
+    "createdAt": "2024-01-15T12:00:00.000Z",
+    "updatedAt": "2024-01-15T12:00:00.000Z"
+  },
+  {
+    "id": "setting-5",
+    "type": "post",
+    "key": "formatting",
+    "value": {
+      "allowMarkdown": true,
+      "autoLinkUrls": true,
+      "maxLength": 5000,
+      "allowImages": true
+    },
+    "entityId": "post-2",
+    "description": "Post formatting and content settings",
+    "isActive": true,
+    "createdAt": "2024-01-15T13:00:00.000Z",
+    "updatedAt": "2024-01-15T13:00:00.000Z"
+  },
+  {
+    "id": "setting-6",
+    "type": "system",
+    "key": "maintenance",
+    "value": {
+      "maintenanceMode": false,
+      "scheduledMaintenance": null,
+      "allowedUsers": ["admin-1", "admin-2"]
+    },
+    "entityId": "system-global",
+    "description": "System maintenance settings",
+    "isActive": true,
+    "createdAt": "2024-01-15T14:00:00.000Z",
+    "updatedAt": "2024-01-15T14:00:00.000Z"
+  }
+]

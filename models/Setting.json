@@ -1,0 +1,101 @@
+{
+  "name": "Setting",
+  "properties": {
+    "id": {
+      "type": "ID",
+      "required": true
+    },
+    "type": {
+      "type": "String",
+      "required": true
+    },
+    "key": {
+      "type": "String",
+      "required": true
+    },
+    "value": {
+      "type": "AWSJSON",
+      "required": true
+    },
+    "entityId": {
+      "type": "ID",
+      "required": true,
+      "isOwner": true
+    },
+    "description": {
+      "type": "String",
+      "required": false
+    },
+    "isActive": {
+      "type": "Boolean",
+      "required": false
+    },
+    "createdAt": {
+      "type": "AWSDateTime",
+      "required": false
+    },
+    "updatedAt": {
+      "type": "AWSDateTime",
+      "required": false
+    }
+  },
+  "indexes": {
+    "byEntityAndType": {
+      "partitionKey": "entityId",
+      "sortKey": "type",
+      "projectionType": "ALL",
+      "description": "Query all settings for a specific entity, optionally filter by type"
+    },
+    "byTypeAndKey": {
+      "partitionKey": "type",
+      "sortKey": "key",
+      "projectionType": "INCLUDE",
+      "projectedAttributes": ["id", "entityId", "value", "isActive", "updatedAt"],
+      "description": "Query settings by type across entities, find specific keys"
+    },
+    "byActiveSettings": {
+      "partitionKey": "isActive",
+      "sortKey": "updatedAt",
+      "projectionType": "KEYS_ONLY",
+      "description": "Sparse index for querying active settings by recency"
+    }
+  },
+  "dataSource": {
+    "type": "database",
+    "engine": "nosql"
+  },
+  "accessControl": {
+    "default": "deny",
+    "rules": [
+      {
+        "allow": "create",
+        "groups": ["users"]
+      },
+      {
+        "allow": "read",
+        "groups": ["users", "admins"]
+      },
+      {
+        "allow": "update",
+        "owner": true
+      },
+      {
+        "allow": "delete",
+        "owner": true
+      },
+      {
+        "allow": "read",
+        "groups": ["admins"]
+      },
+      {
+        "allow": "update",
+        "groups": ["admins"]
+      },
+      {
+        "allow": "delete",
+        "groups": ["admins"]
+      }
+    ]
+  },
+  "enableSubscriptions": true
+}
