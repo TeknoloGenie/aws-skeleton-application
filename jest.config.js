@@ -8,9 +8,16 @@ module.exports = {
   },
   collectCoverageFrom: [
     'lib/**/*.ts',
+    'models/**/*.json',
     '!lib/**/*.d.ts',
     '!lib/**/*.test.ts',
+    '!lib/lambda/node_modules/**'
   ],
   coverageDirectory: 'coverage',
   coverageReporters: ['text', 'lcov', 'html'],
+  setupFilesAfterEnv: ['<rootDir>/test/setup.ts'],
+  testTimeout: 30000,
+  moduleNameMapper: {
+    '^@/(.*)$': '<rootDir>/lib/$1'
+  }
 };
