@@ -20,6 +20,7 @@ const authLink = setContext(async (_, { headers }) => {
       headers: {
         ...headers,
         authorization: token ? `Bearer ${token}` : "",
+        'x-user-timezone': Intl.DateTimeFormat().resolvedOptions().timeZone,
       }
     };
   } catch (error) {
@@ -27,6 +28,7 @@ const authLink = setContext(async (_, { headers }) => {
     return {
       headers: {
         ...headers,
+        'x-user-timezone': Intl.DateTimeFormat().resolvedOptions().timeZone,
       }
     };
   }
