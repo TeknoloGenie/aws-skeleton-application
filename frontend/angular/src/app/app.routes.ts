@@ -40,6 +40,33 @@ const loginGuard = async () => {
   }
 };
 
+// Admin guard function
+const adminGuard = async () => {
+  const router = inject(Router);
+  try {
+    const session = await fetchAuthSession();
+    if (session.tokens?.accessToken) {
+      const idToken = session.tokens.idToken;
+      const groups = idToken?.payload['cognito:groups'] || [];
+      if (groups.includes('admins')) {
+        return true;
+      } else {
+        console.log('User not in admin group, redirecting to dashboard');
+        router.navigate(['/dashboard']);
+        return false;
+      }
+    } else {
+      console.log('No valid session, redirecting to login');
+      router.navigate(['/login']);
+      return false;
+    }
+  } catch (error) {
+    console.log('Authentication check failed:', error);
+    router.navigate(['/login']);
+    return false;
+  }
+};
+
 export const routes: Routes = [
   { path: '', redirectTo: '/dashboard', pathMatch: 'full' },
   { 
@@ -61,6 +88,11 @@ export const routes: Routes = [
     path: 'posts', 
     loadComponent: () => import('./views/posts/posts.component').then(m => m.PostsComponent),
     canActivate: [authGuard]
+  },
+  { 
+    path: 'admin', 
+    loadComponent: () => import('./views/admin/admin-dashboard.component').then(m => m.AdminDashboardComponent),
+    canActivate: [adminGuard]
   },
   // Catch all route - redirect to login
   { path: '**', redirectTo: '/login' }

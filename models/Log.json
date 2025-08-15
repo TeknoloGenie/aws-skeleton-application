@@ -1,0 +1,88 @@
+{
+  "name": "Log",
+  "properties": {
+    "id": {
+      "type": "ID",
+      "required": true
+    },
+    "userId": {
+      "type": "ID",
+      "required": true
+    },
+    "action": {
+      "type": "String",
+      "required": true
+    },
+    "component": {
+      "type": "String",
+      "required": true
+    },
+    "level": {
+      "type": "String",
+      "required": true
+    },
+    "metadata": {
+      "type": "AWSJSON",
+      "required": false
+    }
+  },
+  "indexes": {
+    "byUser": {
+      "partitionKey": "userId",
+      "sortKey": "createdAt",
+      "projectionType": "ALL",
+      "description": "Query all logs for a specific user by time"
+    },
+    "byComponent": {
+      "partitionKey": "component",
+      "sortKey": "createdAt",
+      "projectionType": "ALL",
+      "description": "Query all logs for a specific component by time"
+    },
+    "byAction": {
+      "partitionKey": "action",
+      "sortKey": "createdAt",
+      "projectionType": "ALL",
+      "description": "Query all logs for a specific action by time"
+    },
+    "byLevel": {
+      "partitionKey": "level",
+      "sortKey": "createdAt",
+      "projectionType": "ALL",
+      "description": "Query all logs by level (info, warn, error) by time"
+    }
+  },
+  "dataSource": {
+    "type": "database",
+    "engine": "nosql"
+  },
+  "accessControl": {
+    "default": "deny",
+    "rules": [
+      {
+        "allow": "create",
+        "groups": ["users", "admins"]
+      },
+      {
+        "allow": "read",
+        "groups": ["admins"]
+      },
+      {
+        "allow": "update",
+        "groups": ["admins"]
+      },
+      {
+        "allow": "delete",
+        "groups": ["admins"]
+      }
+    ]
+  },
+  "relationships": {
+    "user": {
+      "type": "belongsTo",
+      "target": "User",
+      "foreignKey": "userId"
+    }
+  },
+  "enableSubscriptions": true
+}

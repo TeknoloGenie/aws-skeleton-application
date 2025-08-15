@@ -1,0 +1,173 @@
+<div class="app-configuration">
+  <div class="config-header">
+    <h2>Application Configuration</h2>
+    <div class="config-actions">
+      <button (click)="loadSettings()" class="btn-secondary">Refresh</button>
+      <button 
+        (click)="saveAllSettings()" 
+        class="btn-primary" 
+        [disabled]="!hasChanges"
+      >
+        Save Changes
+      </button>
+    </div>
+  </div>
+
+  <div class="config-sections">
+    <div class="config-section">
+      <h3>📊 Analytics & Logging</h3>
+      <div class="settings-grid">
+        <div class="setting-item">
+          <label>Log Retention (Days)</label>
+          <input 
+            type="number" 
+            [(ngModel)]="settings.log_retention_days"
+            (input)="markChanged('log_retention_days')"
+            min="1" 
+            max="365"
+            class="form-input"
+          />
+          <small>How long to keep analytics logs (1-365 days)</small>
+        </div>
+
+        <div class="setting-item">
+          <label>Batch Log Interval (Seconds)</label>
+          <input 
+            type="number" 
+            [(ngModel)]="settings.batch_log_interval"
+            (input)="markChanged('batch_log_interval')"
+            min="1" 
+            max="60"
+            class="form-input"
+          />
+          <small>How often to process log batches (1-60 seconds)</small>
+        </div>
+
+        <div class="setting-item">
+          <label>Batch Log Size</label>
+          <input 
+            type="number" 
+            [(ngModel)]="settings.batch_log_size"
+            (input)="markChanged('batch_log_size')"
+            min="10" 
+            max="100"
+            class="form-input"
+          />
+          <small>Maximum events per batch (10-100)</small>
+        </div>
+
+        <div class="setting-item">
+          <label>Enable Error Tracking</label>
+          <input 
+            type="checkbox" 
+            [(ngModel)]="settings.enable_error_tracking"
+            (change)="markChanged('enable_error_tracking')"
+            class="form-checkbox"
+          />
+          <small>Automatically track and log errors</small>
+        </div>
+      </div>
+    </div>
+
+    <div class="config-section">
+      <h3>🔐 Security & Sessions</h3>
+      <div class="settings-grid">
+        <div class="setting-item">
+          <label>Session Timeout (Minutes)</label>
+          <input 
+            type="number" 
+            [(ngModel)]="settings.session_timeout_minutes"
+            (input)="markChanged('session_timeout_minutes')"
+            min="5" 
+            max="480"
+            class="form-input"
+          />
+          <small>User session timeout (5-480 minutes)</small>
+        </div>
+
+        <div class="setting-item">
+          <label>Max Login Attempts</label>
+          <input 
+            type="number" 
+            [(ngModel)]="settings.max_login_attempts"
+            (input)="markChanged('max_login_attempts')"
+            min="3" 
+            max="10"
+            class="form-input"
+          />
+          <small>Failed login attempts before lockout (3-10)</small>
+        </div>
+
+        <div class="setting-item">
+          <label>Enable User Impersonation</label>
+          <input 
+            type="checkbox" 
+            [(ngModel)]="settings.enable_user_impersonation"
+            (change)="markChanged('enable_user_impersonation')"
+            class="form-checkbox"
+          />
+          <small>Allow admin user impersonation</small>
+        </div>
+      </div>
+    </div>
+
+    <div class="config-section">
+      <h3>🎨 User Interface</h3>
+      <div class="settings-grid">
+        <div class="setting-item">
+          <label>Enable Timezone Detection</label>
+          <input 
+            type="checkbox" 
+            [(ngModel)]="settings.timezone_detection"
+            (change)="markChanged('timezone_detection')"
+            class="form-checkbox"
+          />
+          <small>Auto-detect user timezone for datetime display</small>
+        </div>
+
+        <div class="setting-item">
+          <label>Admin Dashboard Refresh (Seconds)</label>
+          <input 
+            type="number" 
+            [(ngModel)]="settings.admin_dashboard_refresh"
+            (input)="markChanged('admin_dashboard_refresh')"
+            min="10" 
+            max="300"
+            class="form-input"
+          />
+          <small>Dashboard refresh interval (10-300 seconds)</small>
+        </div>
+      </div>
+    </div>
+
+    <div class="config-section">
+      <h3>📤 Data Export</h3>
+      <div class="settings-grid">
+        <div class="setting-item">
+          <label>Export Max Records</label>
+          <input 
+            type="number" 
+            [(ngModel)]="settings.export_max_records"
+            (input)="markChanged('export_max_records')"
+            min="1000" 
+            max="100000"
+            step="1000"
+            class="form-input"
+          />
+          <small>Maximum records for CSV/JSON export (1K-100K)</small>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="config-footer">
+    <div *ngIf="hasChanges" class="changes-indicator">
+      <span class="changes-badge">{{ changedSettings.length }} unsaved changes</span>
+      <button (click)="resetChanges()" class="btn-link">Reset</button>
+    </div>
+    
+    <div *ngIf="lastUpdated" class="last-updated">
+      Last updated: {{ formatTimestamp(lastUpdated) }}
+    </div>
+  </div>
+</div>

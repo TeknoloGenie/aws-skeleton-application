@@ -1,0 +1,25 @@
+<div class="admin-dashboard">
+  <div class="dashboard-header">
+    <h1>Admin Dashboard</h1>
+    <div class="user-info">
+      <span>{{ currentUser?.name }}</span>
+      <button (click)="signOut()" class="btn-secondary">Sign Out</button>
+    </div>
+  </div>
+
+  <div class="dashboard-tabs">
+    <button 
+      *ngFor="let tab of tabs" 
+      (click)="setActiveTab(tab.id)"
+      [class]="'tab-button ' + (activeTab === tab.id ? 'active' : '')"
+    >
+      {{ tab.label }}
+    </button>
+  </div>
+
+  <div class="dashboard-content">
+    <app-analytics-dashboard *ngIf="activeTab === 'analytics'"></app-analytics-dashboard>
+    <app-data-management *ngIf="activeTab === 'data'"></app-data-management>
+    <app-app-configuration *ngIf="activeTab === 'config'"></app-app-configuration>
+  </div>
+</div>

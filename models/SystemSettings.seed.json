@@ -1,0 +1,92 @@
+[
+  {
+    "id": "system-log-retention",
+    "type": "SYSTEM",
+    "key": "log_retention_days",
+    "value": {"days": 90},
+    "entityId": "GLOBAL",
+    "description": "Number of days to retain analytics logs",
+    "isActive": true
+  },
+  {
+    "id": "system-batch-interval",
+    "type": "SYSTEM", 
+    "key": "batch_log_interval",
+    "value": {"seconds": 5},
+    "entityId": "GLOBAL",
+    "description": "Batch processing interval for analytics logs",
+    "isActive": true
+  },
+  {
+    "id": "system-batch-size",
+    "type": "SYSTEM",
+    "key": "batch_log_size", 
+    "value": {"count": 50},
+    "entityId": "GLOBAL",
+    "description": "Maximum events per batch for analytics processing",
+    "isActive": true
+  },
+  {
+    "id": "system-session-timeout",
+    "type": "SYSTEM",
+    "key": "session_timeout_minutes",
+    "value": {"minutes": 60},
+    "entityId": "GLOBAL", 
+    "description": "User session timeout in minutes",
+    "isActive": true
+  },
+  {
+    "id": "system-max-login-attempts",
+    "type": "SYSTEM",
+    "key": "max_login_attempts",
+    "value": {"attempts": 5},
+    "entityId": "GLOBAL",
+    "description": "Maximum failed login attempts before lockout",
+    "isActive": true
+  },
+  {
+    "id": "system-enable-impersonation",
+    "type": "SYSTEM",
+    "key": "enable_user_impersonation",
+    "value": {"enabled": true},
+    "entityId": "GLOBAL",
+    "description": "Allow admin user impersonation",
+    "isActive": true
+  },
+  {
+    "id": "system-dashboard-refresh",
+    "type": "SYSTEM",
+    "key": "admin_dashboard_refresh",
+    "value": {"seconds": 30},
+    "entityId": "GLOBAL",
+    "description": "Admin dashboard refresh interval in seconds",
+    "isActive": true
+  },
+  {
+    "id": "system-export-max-records",
+    "type": "SYSTEM",
+    "key": "export_max_records",
+    "value": {"count": 10000},
+    "entityId": "GLOBAL",
+    "description": "Maximum records allowed for CSV/JSON export",
+    "isActive": true
+  },
+  {
+    "id": "system-enable-error-tracking",
+    "type": "SYSTEM",
+    "key": "enable_error_tracking",
+    "value": {"enabled": true},
+    "entityId": "GLOBAL",
+    "description": "Enable automatic error tracking and logging",
+    "isActive": true
+  },
+  {
+    "id": "system-timezone-detection",
+    "type": "SYSTEM",
+    "key": "timezone_detection",
+    "value": {"enabled": true},
+    "entityId": "GLOBAL",
+    "description": "Auto-detect user timezone for datetime display",
+    "isActive": true
+  }
+]
