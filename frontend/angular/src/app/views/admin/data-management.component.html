@@ -1,0 +1,122 @@
+<div class="data-management">
+  <div class="management-header">
+    <h2>Data Management</h2>
+    <div class="model-selector">
+      <select [(ngModel)]="selectedModel" (change)="onModelChange()">
+        <option value="">Select Model</option>
+        <option *ngFor="let model of availableModels" [value]="model">{{ model }}</option>
+      </select>
+      <button (click)="refreshData()" class="btn-secondary">Refresh</button>
+      <button (click)="exportData()" class="btn-primary" [disabled]="!selectedModel">
+        Export {{ exportFormat }}
+      </button>
+      <select [(ngModel)]="exportFormat">
+        <option value="CSV">CSV</option>
+        <option value="JSON">JSON</option>
+      </select>
+    </div>
+  </div>
+
+  <div *ngIf="selectedModel" class="model-management">
+    <div class="actions-bar">
+      <button (click)="showCreateModal = true" class="btn-primary">
+        Create New {{ selectedModel }}
+      </button>
+      <div class="search-bar">
+        <input 
+          [(ngModel)]="searchQuery"
+          placeholder="Search records..." 
+          class="search-input"
+        />
+      </div>
+    </div>
+
+    <div class="data-table">
+      <table>
+        <thead>
+          <tr>
+            <th>
+              <input 
+                type="checkbox" 
+                (change)="toggleSelectAll()"
+                [checked]="allSelected"
+              />
+            </th>
+            <th *ngFor="let field of modelFields" (click)="sortBy(field)">
+              {{ field }}
+              <span *ngIf="sortField === field">
+                {{ sortDirection === 'asc' ? '↑' : '↓' }}
+              </span>
+            </th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let record of paginatedRecords">
+            <td>
+              <input 
+                type="checkbox" 
+                [value]="record.id"
+                [checked]="isRecordSelected(record.id)"
+                (change)="onRecordSelectionChange(record.id, $event.target.checked)"
+              />
+            </td>
+            <td *ngFor="let field of modelFields">
+              <div *ngIf="field.includes('At')" class="timestamp">
+                {{ formatTimestamp(record[field]) }}
+              </div>
+              <div *ngIf="!field.includes('At') && typeof record[field] === 'object'">
+                <details>
+                  <summary>Object</summary>
+                  <pre>{{ record[field] | json }}</pre>
+                </details>
+              </div>
+              <div *ngIf="!field.includes('At') && typeof record[field] !== 'object'">
+                {{ record[field] }}
+              </div>
+            </td>
+            <td class="actions">
+              <button (click)="editRecord(record)" class="btn-sm btn-secondary">
+                Edit
+              </button>
+              <button (click)="deleteRecord(record)" class="btn-sm btn-danger">
+                Delete
+              </button>
+              <button 
+                *ngIf="selectedModel === 'User'" 
+                (click)="impersonateUser(record)"
+                class="btn-sm btn-warning"
+              >
+                Impersonate
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="pagination">
+      <button 
+        (click)="previousPage()" 
+        [disabled]="currentPage <= 1"
+        class="btn-secondary"
+      >
+        Previous
+      </button>
+      <span>Page {{ currentPage }} of {{ totalPages }}</span>
+      <button 
+        (click)="nextPage()" 
+        [disabled]="currentPage >= totalPages"
+        class="btn-secondary"
+      >
+        Next
+      </button>
+      <select [(ngModel)]="pageSize" (change)="onPageSizeChange()">
+        <option value="10">10 per page</option>
+        <option value="25">25 per page</option>
+        <option value="50">50 per page</option>
+        <option value="100">100 per page</option>
+      </select>
+    </div>
+  </div>
+</div>

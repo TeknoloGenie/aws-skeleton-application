@@ -1,0 +1,129 @@
+<div class="analytics-dashboard">
+  <div class="dashboard-controls">
+    <div class="filters">
+      <input 
+        [(ngModel)]="filters.search"
+        (input)="onSearchChange()"
+        placeholder="Search logs..." 
+        class="search-input"
+      />
+      
+      <select [(ngModel)]="filters.component" (change)="onFilterChange('component')">
+        <option value="">All Components</option>
+        <option *ngFor="let component of uniqueComponents" [value]="component">
+          {{ component }}
+        </option>
+      </select>
+
+      <select [(ngModel)]="filters.action" (change)="onFilterChange('action')">
+        <option value="">All Actions</option>
+        <option *ngFor="let action of uniqueActions" [value]="action">
+          {{ action }}
+        </option>
+      </select>
+
+      <select [(ngModel)]="filters.level" (change)="onFilterChange('level')">
+        <option value="">All Levels</option>
+        <option value="info">Info</option>
+        <option value="warn">Warning</option>
+        <option value="error">Error</option>
+      </select>
+
+      <input 
+        [(ngModel)]="filters.dateFrom"
+        (change)="onFilterChange('date-from')"
+        type="datetime-local" 
+        class="date-input"
+      />
+      
+      <input 
+        [(ngModel)]="filters.dateTo"
+        (change)="onFilterChange('date-to')"
+        type="datetime-local" 
+        class="date-input"
+      />
+
+      <button (click)="clearFilters()" class="btn-secondary">Clear Filters</button>
+      <button (click)="exportLogs()" class="btn-primary">Export CSV</button>
+    </div>
+  </div>
+
+  <div class="analytics-content">
+    <div class="charts-section">
+      <div class="chart-container">
+        <h3>Activity Timeline</h3>
+        <div class="chart-placeholder">Chart would be rendered here</div>
+      </div>
+      
+      <div class="chart-container">
+        <h3>Action Distribution</h3>
+        <div class="chart-placeholder">Chart would be rendered here</div>
+      </div>
+      
+      <div class="chart-container">
+        <h3>Component Usage</h3>
+        <div class="chart-placeholder">Chart would be rendered here</div>
+      </div>
+      
+      <div class="chart-container">
+        <h3>Error Rates</h3>
+        <div class="chart-placeholder">Chart would be rendered here</div>
+      </div>
+    </div>
+
+    <div class="logs-section">
+      <div class="logs-header">
+        <h3>Raw Logs ({{ filteredLogs.length }})</h3>
+        <div class="pagination">
+          <button 
+            (click)="previousPage()" 
+            [disabled]="currentPage <= 1"
+            class="btn-secondary"
+          >
+            Previous
+          </button>
+          <span>Page {{ currentPage }} of {{ totalPages }}</span>
+          <button 
+            (click)="nextPage()" 
+            [disabled]="currentPage >= totalPages"
+            class="btn-secondary"
+          >
+            Next
+          </button>
+        </div>
+      </div>
+
+      <div class="logs-table">
+        <table>
+          <thead>
+            <tr>
+              <th>Timestamp</th>
+              <th>User</th>
+              <th>Component</th>
+              <th>Action</th>
+              <th>Level</th>
+              <th>Metadata</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let log of paginatedLogs" [class]="'log-row ' + log.level">
+              <td>{{ formatTimestamp(log.createdAt) }}</td>
+              <td>{{ log.user?.name || log.userId }}</td>
+              <td>{{ log.component }}</td>
+              <td>{{ log.action }}</td>
+              <td>
+                <span [class]="'level-badge ' + log.level">{{ log.level }}</span>
+              </td>
+              <td>
+                <details *ngIf="log.metadata">
+                  <summary>View</summary>
+                  <pre>{{ log.metadata | json }}</pre>
+                </details>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>

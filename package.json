@@ -1,6 +1,6 @@
 {
   "name": "aws-application-accelerator",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "description": "A model-driven AWS application framework using CDK v2",
   "main": "lib/app.js",
   "scripts": {
@@ -39,7 +39,9 @@
     "frontend:angular:dev": "cd frontend/angular && npm start",
     "frontend:angular:build": "cd frontend/angular && npm run build",
     "frontend:angular:install": "cd frontend/angular && npm install",
-    "frontend:install:all": "npm run frontend:vue:install && npm run frontend:react:install && npm run frontend:angular:install"
+    "frontend:install:all": "npm run frontend:vue:install && npm run frontend:react:install && npm run frontend:angular:install",
+    "migrate:component-name": "node scripts/migrate-component-name.js",
+    "verify:component-migration": "node scripts/migrate-component-name.js --dry-run"
   },
   "devDependencies": {
     "@aws-amplify/api-graphql": "^3.4.22",
@@ -68,9 +70,11 @@
     "@aws-sdk/client-rds-data": "^3.848.0",
     "@aws-sdk/client-s3": "^3.850.0",
     "@aws-sdk/client-secrets-manager": "^3.848.0",
+    "@aws-sdk/client-sqs": "^3.848.0",
     "@aws-sdk/lib-dynamodb": "^3.850.0",
     "@types/uuid": "^9.0.4",
     "aws-cdk-lib": "2.100.0",
+    "commander": "^11.1.0",
     "constructs": "^10.0.0",
     "db-migrate": "^0.11.14",
     "db-migrate-mysql": "^2.2.0",
