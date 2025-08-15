@@ -32,6 +32,7 @@ const authLink = setContext(async (_, { headers }) => {
         ...headers,
         authorization: token ? `Bearer ${token}` : '',
         'x-api-key': awsExports.aws_appsync_apiKey || '',
+        'x-user-timezone': Intl.DateTimeFormat().resolvedOptions().timeZone,
       },
     };
   } catch (error) {
@@ -40,6 +41,7 @@ const authLink = setContext(async (_, { headers }) => {
       headers: {
         ...headers,
         'x-api-key': awsExports.aws_appsync_apiKey || '',
+        'x-user-timezone': Intl.DateTimeFormat().resolvedOptions().timeZone,
       },
     };
   }

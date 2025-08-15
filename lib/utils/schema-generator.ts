@@ -99,6 +99,7 @@ scalar AWSIPAddress
     const requestTemplate = `
 ## DynamoDB Request Template with Security
 #set($operation = "$operation")
+#set($userTimezone = $ctx.request.headers["x-user-timezone"])
 
 ## Authorization check
 ${this.securityGenerator.generateAuthorizationCheck(model, 'read')}
@@ -147,6 +148,11 @@ ${this.securityGenerator.generateOwnershipVerification(model, 'read')}
 
 #if($ctx.error)
   $util.error($ctx.error.message, $ctx.error.type)
+#end
+
+## Convert datetime fields to user timezone if available
+#if($userTimezone && $ctx.result)
+  ${this.generateTimezoneConversion(model)}
 #end
 
 ## Handle different operations
@@ -589,5 +595,28 @@ $util.toJson($ctx.result)`;
       default:
         return `/${model.name.toLowerCase()}`;
     }
+  }
+
+  /**
+   * Generate timezone conversion logic for datetime fields
+   */
+  private generateTimezoneConversion(model: ModelDefinition): string {
+    const datetimeFields = Object.entries(model.properties)
+      .filter(([_, prop]) => prop.type === 'AWSDateTime')
+      .map(([fieldName]) => fieldName);
+
+    if (datetimeFields.length === 0) {
+      return '';
+    }
+
+    let conversion = '';
+    for (const field of datetimeFields) {
+      conversion += `
+  #if($ctx.result.${field})
+    #set($ctx.result.${field}_local = $util.time.formatDateTime($ctx.result.${field}, "yyyy-MM-dd'T'HH:mm:ss.SSSXXX", $userTimezone))
+  #end`;
+    }
+
+    return conversion;
   }
 }

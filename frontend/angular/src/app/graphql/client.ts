@@ -34,6 +34,7 @@ export class GraphQLClientService {
         headers: {
           'Content-Type': 'application/json',
           'Authorization': token ? `Bearer ${token}` : '',
+          'x-user-timezone': Intl.DateTimeFormat().resolvedOptions().timeZone,
         },
         body: JSON.stringify({
           query,
