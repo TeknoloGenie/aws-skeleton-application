@@ -22,5 +22,15 @@
     "bio": "System administrator",
     "createdAt": "2024-01-01T00:00:00Z",
     "updatedAt": "2024-01-01T00:00:00Z"
+  },
+  {
+    "id": "user-4",
+    "cognitoId": "nodedad",
+    "email": "aaron.russell@example.com",
+    "name": "Aaron Russell",
+    "role": "admin",
+    "bio": "Lead developer and system architect",
+    "createdAt": "2024-01-01T00:00:00Z",
+    "updatedAt": "2024-01-01T00:00:00Z"
   }
 ]

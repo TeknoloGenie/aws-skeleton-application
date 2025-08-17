@@ -69,7 +69,7 @@
     "rules": [
       {
         "allow": "create",
-        "groups": ["users"]
+        "groups": ["users", "admins"]
       },
       {
         "allow": "read",

@@ -1,6 +1,6 @@
 {
   "name": "aws-application-accelerator",
-  "version": "1.5.0",
+  "version": "1.5.1",
   "description": "A model-driven AWS application framework using CDK v2",
   "main": "lib/app.js",
   "scripts": {
@@ -78,6 +78,7 @@
     "constructs": "^10.0.0",
     "db-migrate": "^0.11.14",
     "db-migrate-mysql": "^2.2.0",
+    "jsonwebtoken": "^9.0.2",
     "uuid": "^9.0.1"
   },
   "repository": {

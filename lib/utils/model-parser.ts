@@ -113,21 +113,29 @@ export class ModelParser {
   private generateInputTypes(model: ModelDefinition): string {
     let inputTypes = '';
 
-    // Create input
+    // Get owner field to exclude from create input
+    const ownerField = this.getOwnerField(model);
+
+    // Create input - exclude id, timestamps, and owner field (auto-populated)
     inputTypes += `input Create${model.name}Input {\n`;
     for (const [propName, propDef] of Object.entries(model.properties)) {
-      if (propName !== 'id') {
+      if (propName !== 'id' && 
+          propName !== 'createdAt' && 
+          propName !== 'updatedAt' &&
+          propName !== ownerField) {
         const required = propDef.required ? '!' : '';
         inputTypes += `  ${propName}: ${propDef.type}${required}\n`;
       }
     }
     inputTypes += '}\n\n';
 
-    // Update input
+    // Update input - exclude timestamps (auto-updated)
     inputTypes += `input Update${model.name}Input {\n`;
     inputTypes += `  id: ID!\n`;
     for (const [propName, propDef] of Object.entries(model.properties)) {
-      if (propName !== 'id') {
+      if (propName !== 'id' && 
+          propName !== 'createdAt' && 
+          propName !== 'updatedAt') {
         inputTypes += `  ${propName}: ${propDef.type}\n`;
       }
     }
@@ -139,6 +147,18 @@ export class ModelParser {
     inputTypes += '}\n\n';
 
     return inputTypes;
+  }
+
+  /**
+   * Get the owner field name from model properties
+   */
+  private getOwnerField(model: ModelDefinition): string | null {
+    for (const [fieldName, fieldDef] of Object.entries(model.properties)) {
+      if (fieldDef.isOwner) {
+        return fieldName;
+      }
+    }
+    return null;
   }
 
   /**

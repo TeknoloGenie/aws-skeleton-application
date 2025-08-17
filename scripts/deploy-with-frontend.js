@@ -93,7 +93,7 @@ async function main() {
       description: 'Building application and layers'
     },
     {
-      command: 'npm run frontend:install',
+      command: 'npm run frontend:react:install',
       description: 'Installing frontend dependencies'
     },
     {

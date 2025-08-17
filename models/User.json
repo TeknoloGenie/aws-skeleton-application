@@ -48,7 +48,7 @@
     "rules": [
       {
         "allow": "create",
-        "groups": ["users"]
+        "groups": ["users", "admins"]
       },
       {
         "allow": "read",
@@ -69,11 +69,6 @@
       "type": "hasMany",
       "target": "Post",
       "foreignKey": "userId"
-    },
-    "settings": {
-      "type": "belongsTo",
-      "target": "Setting",
-      "foreignKey": "entityId"
     }
   },
   "hooks": {

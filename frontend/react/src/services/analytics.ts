@@ -18,10 +18,46 @@ class AnalyticsService {
   private batchSize = 50;
   private batchInterval = 5000; // 5 seconds
   private isProcessing = false;
+  private isInitialized = false;
+  private initializationPromise: Promise<void> | null = null;
 
-  constructor() {
-    this.loadSystemSettings();
-    this.startBatchProcessor();
+  /**
+   * Initialize the analytics service (called lazily)
+   */
+  private async initialize(): Promise<void> {
+    if (this.isInitialized) {
+      return;
+    }
+
+    if (this.initializationPromise) {
+      return this.initializationPromise;
+    }
+
+    this.initializationPromise = this.doInitialize();
+    return this.initializationPromise;
+  }
+
+  private async doInitialize(): Promise<void> {
+    try {
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Analytics Service: Starting initialization...');
+      }
+
+      await this.loadSystemSettings();
+      this.startBatchProcessor();
+      this.isInitialized = true;
+
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Analytics Service: Initialization completed successfully');
+      }
+    } catch (error) {
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('Analytics Service: Failed to initialize, using defaults:', error);
+      }
+      // Use defaults and continue
+      this.startBatchProcessor();
+      this.isInitialized = true;
+    }
   }
 
   /**
@@ -31,7 +67,7 @@ class AnalyticsService {
     try {
       const SYSTEM_SETTINGS_QUERY = gql`
         query GetSystemSettings {
-          listSettings(filter: { type: { eq: "SYSTEM" }, entityId: { eq: "GLOBAL" } }) {
+          listSettings {
             id
             key
             value
@@ -42,45 +78,63 @@ class AnalyticsService {
 
       const result = await apolloClient.query({
         query: SYSTEM_SETTINGS_QUERY,
-        fetchPolicy: 'cache-first'
+        fetchPolicy: 'cache-first',
+        errorPolicy: 'all'
       });
 
-      const settings = result.data.listSettings || [];
-      
-      settings.forEach((setting: any) => {
-        if (!setting.isActive) return;
+      if (result.data && result.data.listSettings) {
+        const settings = result.data.listSettings || [];
         
-        switch (setting.key) {
-          case 'batch_log_size':
-            this.batchSize = setting.value.count || 50;
-            break;
-          case 'batch_log_interval':
-            this.batchInterval = (setting.value.seconds || 5) * 1000;
-            break;
-        }
-      });
+        settings.forEach((setting: any) => {
+          if (!setting.isActive) return;
+          
+          switch (setting.key) {
+            case 'batch_log_size':
+              this.batchSize = parseInt(setting.value) || 50;
+              break;
+            case 'batch_log_interval':
+              this.batchInterval = (parseInt(setting.value) || 5) * 1000;
+              break;
+          }
+        });
 
-      console.log(`Analytics configured: batch size ${this.batchSize}, interval ${this.batchInterval}ms`);
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`Analytics configured: batch size ${this.batchSize}, interval ${this.batchInterval}ms`);
+        }
+      }
     } catch (error) {
-      console.warn('Failed to load system settings, using defaults:', error);
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('Failed to load system settings, using defaults:', error);
+      }
+      // Continue with defaults - this is not a critical failure
     }
   }
 
   /**
    * Set current user ID for analytics
    */
-  setUserId(userId: string) {
+  async setUserId(userId: string) {
     this.currentUserId = userId;
+    
+    // Initialize the service when user is set
+    if (!this.isInitialized) {
+      await this.initialize();
+    }
   }
 
   /**
    * Track an analytics event
    */
-  track(action: string, component: string, level: 'info' | 'warn' | 'error' = 'info', metadata?: Record<string, any>) {
+  async track(action: string, component: string, level: 'info' | 'warn' | 'error' = 'info', metadata?: Record<string, any>) {
     if (!this.currentUserId) {
-      console.warn('Analytics: No user ID set, skipping event');
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('Analytics: No user ID set, skipping event');
+      }
       return;
     }
+
+    // Ensure service is initialized
+    await this.initialize();
 
     const event: AnalyticsEvent = {
       userId: this.currentUserId,
@@ -102,22 +156,22 @@ class AnalyticsService {
   /**
    * Track component view
    */
-  trackView(component: string, metadata?: Record<string, any>) {
-    this.track('view', component, 'info', metadata);
+  async trackView(component: string, metadata?: Record<string, any>) {
+    await this.track('view', component, 'info', metadata);
   }
 
   /**
    * Track user action
    */
-  trackAction(action: string, component: string, metadata?: Record<string, any>) {
-    this.track(action, component, 'info', metadata);
+  async trackAction(action: string, component: string, metadata?: Record<string, any>) {
+    await this.track(action, component, 'info', metadata);
   }
 
   /**
    * Track error
    */
-  trackError(error: string, component: string, metadata?: Record<string, any>) {
-    this.track(error, component, 'error', {
+  async trackError(error: string, component: string, metadata?: Record<string, any>) {
+    await this.track(error, component, 'error', {
       ...metadata,
       errorMessage: error,
       userAgent: navigator.userAgent,
@@ -129,6 +183,10 @@ class AnalyticsService {
    * Start batch processor
    */
   private startBatchProcessor() {
+    if (this.batchTimer) {
+      return; // Already started
+    }
+
     this.batchTimer = setInterval(() => {
       if (this.eventQueue.length > 0) {
         this.processBatch();
@@ -148,31 +206,46 @@ class AnalyticsService {
     const batch = this.eventQueue.splice(0, this.batchSize);
 
     try {
-      const CREATE_LOGS_MUTATION = gql`
-        mutation CreateLogs($logs: [CreateLogInput!]!) {
-          createLogs(logs: $logs) {
+      const CREATE_LOG_MUTATION = gql`
+        mutation CreateLog($input: CreateLogInput!) {
+          createLog(input: $input) {
             id
             createdAt
           }
         }
       `;
 
-      const logInputs = batch.map(event => ({
-        userId: event.userId,
-        action: event.action,
-        component: event.component,
-        level: event.level,
-        metadata: event.metadata
-      }));
+      // Process events one by one since we don't have a batch mutation
+      for (const event of batch) {
+        try {
+          await apolloClient.mutate({
+            mutation: CREATE_LOG_MUTATION,
+            variables: { 
+              input: {
+                userId: event.userId,
+                action: event.action,
+                component: event.component,
+                level: event.level,
+                metadata: JSON.stringify(event.metadata)
+              }
+            },
+            errorPolicy: 'all'
+          });
+        } catch (error) {
+          if (process.env.NODE_ENV === 'development') {
+            console.warn('Analytics: Failed to create log entry:', error);
+          }
+          // Continue processing other events
+        }
+      }
 
-      await apolloClient.mutate({
-        mutation: CREATE_LOGS_MUTATION,
-        variables: { logs: logInputs }
-      });
-
-      console.log(`Analytics: Processed batch of ${batch.length} events`);
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`Analytics: Processed batch of ${batch.length} events`);
+      }
     } catch (error) {
-      console.error('Analytics: Failed to process batch:', error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Analytics: Failed to process batch:', error);
+      }
       // Re-queue failed events
       this.eventQueue.unshift(...batch);
     } finally {

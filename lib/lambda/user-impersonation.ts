@@ -67,14 +67,16 @@ export const handler = async (event: ImpersonationEvent) => {
   } catch (error) {
     console.error('Impersonation failed:', error);
     
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+    
     // Log the failed attempt
-    await logImpersonationFailure(adminUserId, targetUserId, error.message, logTableName);
+    await logImpersonationFailure(adminUserId, targetUserId, errorMessage, logTableName);
 
     return {
       statusCode: 400,
       body: JSON.stringify({
         success: false,
-        error: error.message
+        error: errorMessage
       })
     };
   }

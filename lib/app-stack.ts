@@ -42,6 +42,7 @@ export class AppStack extends cdk.Stack {
   private schemaGenerator: SchemaGenerator;
   private awsSdkLayer: lambda.LayerVersion;
   private cognitoLayer: lambda.LayerVersion;
+  private createdRelationshipDataSources: Map<string, appsync.DynamoDbDataSource | appsync.RdsDataSource> = new Map();
 
   constructor(scope: Construct, id: string, props: AppStackProps) {
     super(scope, id, props);
@@ -193,6 +194,7 @@ export class AppStack extends cdk.Stack {
         adminUserPassword: true,
         custom: true,
         userSrp: true,
+        userPassword: true, // Enable USER_PASSWORD_AUTH flow for testing
       },
       supportedIdentityProviders: [
         cognito.UserPoolClientIdentityProvider.COGNITO,
@@ -619,7 +621,7 @@ export class AppStack extends cdk.Stack {
       typeName: 'Query',
       fieldName: `get${model.name}`,
       requestMappingTemplate: appsync.MappingTemplate.fromString(
-        resolverTemplates.request.replace('$operation', 'GetItem')
+        this.schemaGenerator.generateGetItemTemplate(model)
       ),
       responseMappingTemplate: appsync.MappingTemplate.fromString(
         resolverTemplates.response
@@ -630,7 +632,7 @@ export class AppStack extends cdk.Stack {
       typeName: 'Query',
       fieldName: `list${model.name}s`,
       requestMappingTemplate: appsync.MappingTemplate.fromString(
-        resolverTemplates.request.replace('$operation', 'Scan')
+        this.schemaGenerator.generateScanTemplate(model)
       ),
       responseMappingTemplate: appsync.MappingTemplate.fromString(
         resolverTemplates.response
@@ -641,7 +643,7 @@ export class AppStack extends cdk.Stack {
       typeName: 'Mutation',
       fieldName: `create${model.name}`,
       requestMappingTemplate: appsync.MappingTemplate.fromString(
-        resolverTemplates.request.replace('$operation', 'PutItem')
+        this.schemaGenerator.generatePutItemTemplate(model)
       ),
       responseMappingTemplate: appsync.MappingTemplate.fromString(
         resolverTemplates.response
@@ -652,7 +654,7 @@ export class AppStack extends cdk.Stack {
       typeName: 'Mutation',
       fieldName: `update${model.name}`,
       requestMappingTemplate: appsync.MappingTemplate.fromString(
-        resolverTemplates.request.replace('$operation', 'UpdateItem')
+        this.schemaGenerator.generateUpdateItemTemplate(model)
       ),
       responseMappingTemplate: appsync.MappingTemplate.fromString(
         resolverTemplates.response
@@ -663,7 +665,7 @@ export class AppStack extends cdk.Stack {
       typeName: 'Mutation',
       fieldName: `delete${model.name}`,
       requestMappingTemplate: appsync.MappingTemplate.fromString(
-        resolverTemplates.request.replace('$operation', 'DeleteItem')
+        this.schemaGenerator.generateDeleteItemTemplate(model)
       ),
       responseMappingTemplate: appsync.MappingTemplate.fromString(
         resolverTemplates.response
@@ -691,28 +693,37 @@ export class AppStack extends cdk.Stack {
 
       // Use the target model's data source for the relationship resolver
       let targetDataSource: appsync.DynamoDbDataSource | appsync.RdsDataSource;
+      const dataSourceId = `${targetModel.name}RelationshipDataSource`;
       
-      if (targetModel.dataSource.type === 'database' && targetModel.dataSource.engine === 'nosql') {
-        // Find or create DynamoDB data source for target model
-        targetDataSource = this.api.addDynamoDbDataSource(
-          `${targetModel.name}RelationshipDataSource`,
-          dynamodb.Table.fromTableName(this, `${targetModel.name}RelationshipTable`, 
-            `${this.stackName}-${targetModel.name}Table`)
-        );
-      } else if (targetModel.dataSource.type === 'database' && targetModel.dataSource.engine === 'sql') {
-        // Use RDS data source for target model
-        if (!this.rdsCluster) {
-          console.warn(`RDS cluster not available for relationship ${resolver.fieldName}`);
+      // Check if we already created this data source
+      if (this.createdRelationshipDataSources.has(dataSourceId)) {
+        targetDataSource = this.createdRelationshipDataSources.get(dataSourceId)!;
+      } else {
+        if (targetModel.dataSource.type === 'database' && targetModel.dataSource.engine === 'nosql') {
+          // Create DynamoDB data source for target model
+          targetDataSource = this.api.addDynamoDbDataSource(
+            dataSourceId,
+            dynamodb.Table.fromTableName(this, `${targetModel.name}RelationshipTable`, 
+              `${this.stackName}-${targetModel.name}Table`)
+          );
+        } else if (targetModel.dataSource.type === 'database' && targetModel.dataSource.engine === 'sql') {
+          // Use RDS data source for target model
+          if (!this.rdsCluster) {
+            console.warn(`RDS cluster not available for relationship ${resolver.fieldName}`);
+            continue;
+          }
+          targetDataSource = this.api.addRdsDataSource(
+            dataSourceId,
+            this.rdsCluster,
+            this.rdsCluster.secret!
+          );
+        } else {
+          console.warn(`Unsupported data source type for relationship: ${targetModel.dataSource.type}`);
           continue;
         }
-        targetDataSource = this.api.addRdsDataSource(
-          `${targetModel.name}RelationshipDataSource`,
-          this.rdsCluster,
-          this.rdsCluster.secret!
-        );
-      } else {
-        console.warn(`Unsupported data source type for relationship: ${targetModel.dataSource.type}`);
-        continue;
+        
+        // Store the created data source
+        this.createdRelationshipDataSources.set(dataSourceId, targetDataSource);
       }
 
       // Create the relationship resolver

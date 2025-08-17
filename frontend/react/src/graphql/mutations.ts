@@ -91,22 +91,30 @@ export interface CreateUserInput {
   name: string;
   email: string;
   bio?: string;
+  role?: string;
+  cognitoId?: string;
+  // Note: id, userId, createdAt, updatedAt are auto-generated
 }
 
 export interface UpdateUserInput {
   name?: string;
   email?: string;
   bio?: string;
+  role?: string;
+  cognitoId?: string;
+  // Note: createdAt, updatedAt are auto-managed
 }
 
 export interface CreatePostInput {
   title: string;
   content: string;
   published?: boolean;
+  // Note: id, userId, createdAt, updatedAt are auto-generated
 }
 
 export interface UpdatePostInput {
   title?: string;
   content?: string;
   published?: boolean;
+  // Note: createdAt, updatedAt are auto-managed
 }

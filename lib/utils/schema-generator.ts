@@ -96,63 +96,30 @@ scalar AWSIPAddress
     request: string;
     response: string;
   } {
-    const requestTemplate = `
-## DynamoDB Request Template with Security
-#set($operation = "$operation")
-#set($userTimezone = $ctx.request.headers["x-user-timezone"])
+    // This method is kept for backward compatibility but now returns a placeholder
+    // Individual operations should use the specific methods below
+    const requestTemplate = `OPERATION_PLACEHOLDER`;
 
-## Authorization check
-${this.securityGenerator.generateAuthorizationCheck(model, 'read')}
-
-{
-  "version": "2017-02-28",
-  "operation": "$operation",
-  #if($operation == "GetItem")
-    "key": {
-      "id": $util.dynamodb.toDynamoDBJson($ctx.args.id)
-    }
-  #elseif($operation == "Scan")
-    "limit": $util.defaultIfNull($ctx.args.limit, 20),
-    "nextToken": $util.toJson($util.defaultIfNullOrBlank($ctx.args.nextToken, null))
-  #elseif($operation == "PutItem")
-    "key": {
-      "id": $util.dynamodb.toDynamoDBJson($util.autoId())
-    },
-    "attributeValues": $util.dynamodb.toMapValuesJson($ctx.args.input),
-    "condition": {
-      "expression": "attribute_not_exists(id)"
-    }
-  #elseif($operation == "UpdateItem")
-    "key": {
-      "id": $util.dynamodb.toDynamoDBJson($ctx.args.input.id)
-    },
-    "update": {
-      "expression": "SET #updatedAt = :updatedAt",
-      "expressionNames": {
-        "#updatedAt": "updatedAt"
-      },
-      "expressionValues": {
-        ":updatedAt": $util.dynamodb.toDynamoDBJson($util.time.nowISO8601())
-      }
-    }
-  #elseif($operation == "DeleteItem")
-    "key": {
-      "id": $util.dynamodb.toDynamoDBJson($ctx.args.input.id)
-    }
-  #end
-}`;
+    const ownershipVerification = this.securityGenerator.generateOwnershipVerification(model, 'read');
+    const timezoneConversion = this.generateTimezoneConversion(model);
+    const itemOwnershipFilter = this.generateItemOwnershipFilter(model);
 
     const responseTemplate = `
 ## DynamoDB Response Template with Security
-${this.securityGenerator.generateOwnershipVerification(model, 'read')}
+` + ownershipVerification + `
 
 #if($ctx.error)
   $util.error($ctx.error.message, $ctx.error.type)
 #end
 
+## Debug logging for development
+#if($util.defaultIfNull($ctx.request.headers["x-debug"], false) && $process.env.STAGE == "development")
+  $util.qr($ctx.stash.put("debug-response", "Processing DynamoDB response"))
+#end
+
 ## Convert datetime fields to user timezone if available
 #if($userTimezone && $ctx.result)
-  ${this.generateTimezoneConversion(model)}
+  ` + timezoneConversion + `
 #end
 
 ## Handle different operations
@@ -160,11 +127,16 @@ ${this.securityGenerator.generateOwnershipVerification(model, 'read')}
   #if($ctx.result.items)
     ## For list operations, filter items based on ownership
     #set($filteredItems = [])
+    #set($originalCount = $ctx.result.items.size())
     #foreach($item in $ctx.result.items)
-      ${this.generateItemOwnershipFilter(model)}
+      ` + itemOwnershipFilter + `
       #if($includeItem)
         $util.qr($filteredItems.add($item))
       #end
+    #end
+    ## Debug logging for development
+    #if($util.defaultIfNull($ctx.request.headers["x-debug"], false))
+      $util.qr($ctx.stash.put("debug-filter", "Filtered $originalCount items to $filteredItems.size() items"))
     #end
     {
       "items": $util.toJson($filteredItems),
@@ -182,6 +154,154 @@ ${this.securityGenerator.generateOwnershipVerification(model, 'read')}
       request: requestTemplate,
       response: responseTemplate,
     };
+  }
+
+  /**
+   * Generate GetItem request template
+   */
+  generateGetItemTemplate(model: ModelDefinition): string {
+    const authCheck = this.securityGenerator.generateAuthorizationCheck(model, 'read');
+    
+    return `
+## DynamoDB GetItem Request Template with Security
+#set($userTimezone = $ctx.request.headers["x-user-timezone"])
+
+## Authorization check
+` + authCheck + `
+
+{
+  "version": "2017-02-28",
+  "operation": "GetItem",
+  "key": {
+    "id": $util.dynamodb.toDynamoDBJson($ctx.args.id)
+  }
+}`;
+  }
+
+  /**
+   * Generate Scan request template for list operations
+   */
+  generateScanTemplate(model: ModelDefinition): string {
+    const authCheck = this.securityGenerator.generateAuthorizationCheck(model, 'read');
+    
+    if (process.env.STAGE === 'development') {
+      console.log(`Generating Scan template for model: ${model.name}`);
+    }
+    
+    return `
+## DynamoDB Scan Request Template with Security
+#set($userTimezone = $ctx.request.headers["x-user-timezone"])
+
+## Authorization check
+` + authCheck + `
+
+## Debug logging for development
+#if($util.defaultIfNull($ctx.request.headers["x-debug"], false))
+  $util.qr($ctx.stash.put("debug", "Executing Scan operation for ${model.name}"))
+#end
+
+{
+  "version": "2017-02-28",
+  "operation": "Scan",
+  "limit": $util.defaultIfNull($ctx.args.limit, 20),
+  "nextToken": $util.toJson($util.defaultIfNullOrBlank($ctx.args.nextToken, null))
+}`;
+  }
+
+  /**
+   * Generate PutItem request template for create operations
+   */
+  generatePutItemTemplate(model: ModelDefinition): string {
+    const authCheck = this.securityGenerator.generateAuthorizationCheck(model, 'create');
+    const ownerField = this.getOwnerField(model);
+    const ownerFieldAssignment = ownerField ? `#set($input.` + ownerField + ` = $ctx.identity.sub)` : '';
+    
+    return `
+## DynamoDB PutItem Request Template with Security
+#set($userTimezone = $ctx.request.headers["x-user-timezone"])
+
+## Authorization check
+` + authCheck + `
+
+## Auto-generate ID and populate required fields
+#set($id = $util.autoId())
+#set($input = $ctx.args.input)
+#set($input.id = $id)
+
+## Auto-populate owner field if defined
+` + ownerFieldAssignment + `
+
+## Auto-populate timestamps
+#set($now = $util.time.nowISO8601())
+#set($input.createdAt = $now)
+#set($input.updatedAt = $now)
+
+{
+  "version": "2017-02-28",
+  "operation": "PutItem",
+  "key": {
+    "id": $util.dynamodb.toDynamoDBJson($id)
+  },
+  "attributeValues": $util.dynamodb.toMapValuesJson($input),
+  "condition": {
+    "expression": "attribute_not_exists(id)"
+  }
+}`;
+  }
+
+  /**
+   * Generate UpdateItem request template
+   */
+  generateUpdateItemTemplate(model: ModelDefinition): string {
+    const authCheck = this.securityGenerator.generateAuthorizationCheck(model, 'update');
+    const updateExpression = this.generateUpdateExpression(model);
+    const expressionNames = this.generateExpressionNames(model);
+    
+    return `
+## DynamoDB UpdateItem Request Template with Security
+#set($userTimezone = $ctx.request.headers["x-user-timezone"])
+
+## Authorization check
+` + authCheck + `
+
+## Auto-populate updatedAt timestamp
+#set($input = $ctx.args.input)
+#set($input.updatedAt = $util.time.nowISO8601())
+
+{
+  "version": "2017-02-28",
+  "operation": "UpdateItem",
+  "key": {
+    "id": $util.dynamodb.toDynamoDBJson($ctx.args.input.id)
+  },
+  "update": {
+    "expression": "SET ` + updateExpression + `, #updatedAt = :updatedAt",
+    "expressionNames": ` + expressionNames + `,
+    "expressionValues": $util.dynamodb.toMapValuesJson($input)
+  }
+}`;
+  }
+
+  /**
+   * Generate DeleteItem request template
+   */
+  generateDeleteItemTemplate(model: ModelDefinition): string {
+    const authCheck = this.securityGenerator.generateAuthorizationCheck(model, 'delete');
+    
+    return `
+## DynamoDB DeleteItem Request Template with Security
+#set($userTimezone = $ctx.request.headers["x-user-timezone"])
+
+## Authorization check
+` + authCheck + `
+
+{
+  "version": "2017-02-28",
+  "operation": "DeleteItem",
+  "key": {
+    "id": $util.dynamodb.toDynamoDBJson($ctx.args.input.id)
+  }
+}`;
   }
 
   private generateItemOwnershipFilter(model: ModelDefinition): string {
@@ -214,7 +334,7 @@ ${this.securityGenerator.generateOwnershipVerification(model, 'read')}
     #end
     
     ## Check ownership
-    #if(!$includeItem && $item.${ownerField} == $userId)
+    #if(!$includeItem && $item.` + ownerField + ` == $userId)
       #set($includeItem = true)
     #end
     `;
@@ -237,6 +357,12 @@ ${this.securityGenerator.generateOwnershipVerification(model, 'read')}
     response: string;
   } {
     const tableName = model.name.toLowerCase();
+    const columnList = this.generateColumnList(model);
+    const valuePlaceholders = this.generateValuePlaceholders(model);
+    const parameterList = this.generateParameterList(model);
+    const updateSet = this.generateUpdateSet(model);
+    const updateParameters = this.generateUpdateParameters(model);
+    const sqlStatement = this.generateSQLStatement(model, "operation");
 
     const requestTemplate = `
 {
@@ -250,7 +376,7 @@ ${this.securityGenerator.generateOwnershipVerification(model, 'read')}
     },
     "body": {
       #if($operation == "SELECT")
-        "sql": "SELECT * FROM ${tableName} WHERE id = :id",
+        "sql": "SELECT * FROM ` + tableName + ` WHERE id = :id",
         "parameters": [
           {
             "name": "id",
@@ -260,17 +386,17 @@ ${this.securityGenerator.generateOwnershipVerification(model, 'read')}
           }
         ]
       #elseif($operation == "INSERT")
-        "sql": "INSERT INTO ${tableName} (${this.generateColumnList(model)}) VALUES (${this.generateValuePlaceholders(model)})",
+        "sql": "INSERT INTO ` + tableName + ` (` + columnList + `) VALUES (` + valuePlaceholders + `)",
         "parameters": [
-          ${this.generateParameterList(model)}
+          ` + parameterList + `
         ]
       #elseif($operation == "UPDATE")
-        "sql": "UPDATE ${tableName} SET ${this.generateUpdateSet(model)} WHERE id = :id",
+        "sql": "UPDATE ` + tableName + ` SET ` + updateSet + ` WHERE id = :id",
         "parameters": [
-          ${this.generateUpdateParameters(model)}
+          ` + updateParameters + `
         ]
       #elseif($operation == "DELETE")
-        "sql": "DELETE FROM ${tableName} WHERE id = :id",
+        "sql": "DELETE FROM ` + tableName + ` WHERE id = :id",
         "parameters": [
           {
             "name": "id",
@@ -304,15 +430,15 @@ $util.toJson($ctx.result)`;
   }
 
   private generateValuePlaceholders(model: ModelDefinition): string {
-    return Object.keys(model.properties).map(key => `:${key}`).join(', ');
+    return Object.keys(model.properties).map(key => ":" + key).join(', ');
   }
 
   private generateParameterList(model: ModelDefinition): string {
     return Object.entries(model.properties).map(([key, prop]) => `
       {
-        "name": "${key}",
+        "name": "` + key + `",
         "value": {
-          "${this.getParameterType(prop.type)}": "$ctx.args.input.${key}"
+          "` + this.getParameterType(prop.type) + `": "$ctx.args.input.` + key + `"
         }
       }`).join(',');
   }
@@ -320,7 +446,7 @@ $util.toJson($ctx.result)`;
   private generateUpdateSet(model: ModelDefinition): string {
     return Object.keys(model.properties)
       .filter(key => key !== 'id')
-      .map(key => `${key} = :${key}`)
+      .map(key => key + " = :" + key)
       .join(', ');
   }
 
@@ -329,9 +455,9 @@ $util.toJson($ctx.result)`;
       .filter(([key]) => key !== 'id')
       .map(([key, prop]) => `
         {
-          "name": "${key}",
+          "name": "` + key + `",
           "value": {
-            "${this.getParameterType(prop.type)}": "$ctx.args.input.${key}"
+            "` + this.getParameterType(prop.type) + `": "$ctx.args.input.` + key + `"
           }
         }`);
     
@@ -344,6 +470,37 @@ $util.toJson($ctx.result)`;
       }`);
 
     return params.join(',');
+  }
+
+  private generateCreateTemplate(model: ModelDefinition, ownerField: string | null): string {
+    const ownerFieldAssignment = ownerField ? `#set($input.` + ownerField + ` = $ctx.identity.sub)` : '';
+    
+    return `
+      ## Auto-generate ID and populate owner field
+      #set($id = $util.autoId())
+      #set($input = $ctx.args.input)
+      #set($input.id = $id)
+      
+      ## Auto-populate owner field if defined
+      ` + ownerFieldAssignment + `
+      
+      ## Auto-populate timestamps
+      #set($now = $util.time.nowISO8601())
+      #set($input.createdAt = $now)
+      #set($input.updatedAt = $now)
+      
+      {
+        "version": "2018-05-29",
+        "operation": "PutItem",
+        "key": {
+          "id": $util.dynamodb.toDynamoDBJson($id)
+        },
+        "attributeValues": $util.dynamodb.toMapValuesJson($input),
+        "condition": {
+          "expression": "attribute_not_exists(id)"
+        }
+      }
+    `;
   }
 
   private getParameterType(graphqlType: string): string {
@@ -367,15 +524,17 @@ $util.toJson($ctx.result)`;
     
     if (!model.hooks) return functions;
 
-    const beforeHook = model.hooks[`before${operation}` as keyof typeof model.hooks];
-    const afterHook = model.hooks[`after${operation}` as keyof typeof model.hooks];
+    const beforeHookKey = ("before" + operation) as keyof typeof model.hooks;
+    const afterHookKey = ("after" + operation) as keyof typeof model.hooks;
+    const beforeHook = model.hooks[beforeHookKey];
+    const afterHook = model.hooks[afterHookKey];
 
     // Add before hook function
     if (beforeHook) {
       functions.push(`
         #set($beforeResult = $util.transform.toLambdaRequest({
-          "operation": "before${operation}",
-          "model": "${model.name}",
+          "operation": "before` + operation + `",
+          "model": "` + model.name + `",
           "args": $ctx.args,
           "identity": $ctx.identity,
           "source": $ctx.source
@@ -391,8 +550,8 @@ $util.toJson($ctx.result)`;
     if (afterHook) {
       functions.push(`
         #set($afterResult = $util.transform.toLambdaRequest({
-          "operation": "after${operation}",
-          "model": "${model.name}",
+          "operation": "after` + operation + `",
+          "model": "` + model.name + `",
           "result": $ctx.result,
           "args": $ctx.args,
           "identity": $ctx.identity
@@ -425,25 +584,17 @@ $util.toJson($ctx.result)`;
     
     switch (operation.toLowerCase()) {
       case 'create':
+        const ownerField = this.getOwnerField(model);
+        const createTemplate = this.generateCreateTemplate(model, ownerField);
         operationTemplate = `
-          ${authCheck}
-          {
-            "version": "2018-05-29",
-            "operation": "PutItem",
-            "key": {
-              "id": $util.dynamodb.toDynamoDBJson($util.autoId())
-            },
-            "attributeValues": $util.dynamodb.toMapValuesJson($ctx.args.input),
-            "condition": {
-              "expression": "attribute_not_exists(id)"
-            }
-          }
+          ` + authCheck + `
+          ` + createTemplate + `
         `;
         break;
         
       case 'read':
         operationTemplate = `
-          ${authCheck}
+          ` + authCheck + `
           {
             "version": "2018-05-29",
             "operation": "GetItem",
@@ -456,9 +607,11 @@ $util.toJson($ctx.result)`;
         
       case 'update':
         const preOwnershipCheck = this.securityGenerator.generatePreOperationOwnershipCheck(model, 'update');
+        const updateExpression = this.generateUpdateExpression(model);
+        const expressionNames = this.generateExpressionNames(model);
         operationTemplate = `
-          ${authCheck}
-          ${preOwnershipCheck}
+          ` + authCheck + `
+          ` + preOwnershipCheck + `
           #if(!$ctx.stash.needsOwnershipCheck)
             {
               "version": "2018-05-29",
@@ -467,8 +620,8 @@ $util.toJson($ctx.result)`;
                 "id": $util.dynamodb.toDynamoDBJson($ctx.args.id)
               },
               "update": {
-                "expression": "SET ${this.generateUpdateExpression(model)}",
-                "expressionNames": ${this.generateExpressionNames(model)},
+                "expression": "SET ` + updateExpression + `",
+                "expressionNames": ` + expressionNames + `,
                 "expressionValues": $util.dynamodb.toMapValuesJson($ctx.args.input)
               }
             }
@@ -479,8 +632,8 @@ $util.toJson($ctx.result)`;
       case 'delete':
         const preDeleteOwnershipCheck = this.securityGenerator.generatePreOperationOwnershipCheck(model, 'delete');
         operationTemplate = `
-          ${authCheck}
-          ${preDeleteOwnershipCheck}
+          ` + authCheck + `
+          ` + preDeleteOwnershipCheck + `
           #if(!$ctx.stash.needsOwnershipCheck)
             {
               "version": "2018-05-29",
@@ -501,11 +654,12 @@ $util.toJson($ctx.result)`;
   }
 
   private generateRDSOperationFunction(model: ModelDefinition, operation: string): string {
+    const sqlStatement = this.generateSQLStatement(model, operation);
     return `
       {
         "version": "2018-05-29",
         "statements": [
-          "${this.generateSQLStatement(model, operation)}"
+          "` + sqlStatement + `"
         ]
       }
     `;
@@ -526,8 +680,8 @@ $util.toJson($ctx.result)`;
             "body": {
               "QueueUrl": "$ctx.stash.queueUrl",
               "MessageBody": $util.toJson({
-                "operation": "${operation}",
-                "model": "${model.name}",
+                "operation": "` + operation + `",
+                "model": "` + model.name + `",
                 "args": $ctx.args,
                 "requestId": "$util.autoId()"
               })
@@ -536,11 +690,12 @@ $util.toJson($ctx.result)`;
         }
       `;
     } else {
+      const apiPath = this.getApiPath(model, operation);
       return `
         {
           "version": "2018-05-29",
           "method": "POST",
-          "resourcePath": "${this.getApiPath(model, operation)}",
+          "resourcePath": "` + apiPath + `",
           "params": {
             "headers": {
               "Content-Type": "application/json",
@@ -554,46 +709,60 @@ $util.toJson($ctx.result)`;
   }
 
   private generateUpdateExpression(model: ModelDefinition): string {
-    const properties = Object.keys(model.properties).filter(key => key !== 'id');
-    return properties.map(prop => `#${prop} = :${prop}`).join(', ');
+    const properties = Object.keys(model.properties).filter(key => 
+      key !== 'id' && key !== 'createdAt' && key !== 'updatedAt'
+    );
+    return properties.map(prop => "#" + prop + " = :" + prop).join(', ');
   }
 
   private generateExpressionNames(model: ModelDefinition): string {
-    const properties = Object.keys(model.properties).filter(key => key !== 'id');
+    const properties = Object.keys(model.properties).filter(key => 
+      key !== 'id' && key !== 'createdAt'
+    );
     const names = properties.reduce((acc, prop) => {
-      acc[`#${prop}`] = prop;
+      acc["#" + prop] = prop;
       return acc;
     }, {} as Record<string, string>);
+    
+    // Always include updatedAt
+    names['#updatedAt'] = 'updatedAt';
+    
     return JSON.stringify(names);
   }
 
   private generateSQLStatement(model: ModelDefinition, operation: string): string {
+    const tableName = model.name.toLowerCase() + "s";
+    const columnList = Object.keys(model.properties).join(', ');
+    const valuePlaceholders = Object.keys(model.properties).map(() => '?').join(', ');
+    const updateSet = Object.keys(model.properties).filter(k => k !== 'id').map(k => k + " = ?").join(', ');
+    
     switch (operation.toLowerCase()) {
       case 'create':
-        return `INSERT INTO ${model.name.toLowerCase()}s (${Object.keys(model.properties).join(', ')}) VALUES (${Object.keys(model.properties).map(() => '?').join(', ')})`;
+        return "INSERT INTO " + tableName + " (" + columnList + ") VALUES (" + valuePlaceholders + ")";
       case 'read':
-        return `SELECT * FROM ${model.name.toLowerCase()}s WHERE id = ?`;
+        return "SELECT * FROM " + tableName + " WHERE id = ?";
       case 'update':
-        return `UPDATE ${model.name.toLowerCase()}s SET ${Object.keys(model.properties).filter(k => k !== 'id').map(k => `${k} = ?`).join(', ')} WHERE id = ?`;
+        return "UPDATE " + tableName + " SET " + updateSet + " WHERE id = ?";
       case 'delete':
-        return `DELETE FROM ${model.name.toLowerCase()}s WHERE id = ?`;
+        return "DELETE FROM " + tableName + " WHERE id = ?";
       default:
         return '';
     }
   }
 
   private getApiPath(model: ModelDefinition, operation: string): string {
+    const modelNameLower = model.name.toLowerCase();
     switch (operation.toLowerCase()) {
       case 'create':
-        return `/${model.name.toLowerCase()}`;
+        return "/" + modelNameLower;
       case 'read':
-        return `/${model.name.toLowerCase()}/$ctx.args.id`;
+        return "/" + modelNameLower + "/$ctx.args.id";
       case 'update':
-        return `/${model.name.toLowerCase()}/$ctx.args.id`;
+        return "/" + modelNameLower + "/$ctx.args.id";
       case 'delete':
-        return `/${model.name.toLowerCase()}/$ctx.args.id`;
+        return "/" + modelNameLower + "/$ctx.args.id";
       default:
-        return `/${model.name.toLowerCase()}`;
+        return "/" + modelNameLower;
     }
   }
 
@@ -612,8 +781,8 @@ $util.toJson($ctx.result)`;
     let conversion = '';
     for (const field of datetimeFields) {
       conversion += `
-  #if($ctx.result.${field})
-    #set($ctx.result.${field}_local = $util.time.formatDateTime($ctx.result.${field}, "yyyy-MM-dd'T'HH:mm:ss.SSSXXX", $userTimezone))
+  #if($ctx.result.` + field + `)
+    #set($ctx.result.` + field + `_local = $util.time.formatDateTime($ctx.result.` + field + `, "yyyy-MM-dd'T'HH:mm:ss.SSSXXX", $userTimezone))
   #end`;
     }
 

@@ -1,0 +1,51 @@
+## DynamoDB Scan Request Template with Fixed Authorization
+#set($userTimezone = $ctx.request.headers["x-user-timezone"])
+
+## Get user groups with proper fallback - try multiple approaches
+#set($userGroups = $util.defaultIfNull($ctx.identity.get("cognito:groups"), []))
+#if($userGroups.isEmpty())
+  #set($userGroups = $util.defaultIfNull($ctx.identity["cognito:groups"], []))
+#end
+
+#set($userId = $ctx.identity.sub)
+#set($isAuthorized = false)
+
+## Debug logging
+#if($util.defaultIfNull($ctx.request.headers["x-debug"], false))
+  $util.qr($ctx.stash.put("debug-user-id", $userId))
+  $util.qr($ctx.stash.put("debug-user-groups", $userGroups))
+  $util.qr($ctx.stash.put("debug-groups-type", $userGroups.getClass().getSimpleName()))
+  $util.qr($ctx.stash.put("debug-groups-size", $userGroups.size()))
+#end
+
+## Check if user is in admins or users group
+#if($userGroups && $userGroups.size() > 0)
+  #foreach($group in $userGroups)
+    #if($group == "admins" || $group == "users")
+      #set($isAuthorized = true)
+      #if($util.defaultIfNull($ctx.request.headers["x-debug"], false))
+        $util.qr($ctx.stash.put("debug-auth-success", "Authorized via group: $group"))
+      #end
+      #break
+    #end
+  #end
+#else
+  #if($util.defaultIfNull($ctx.request.headers["x-debug"], false))
+    $util.qr($ctx.stash.put("debug-no-groups", "No user groups found or empty"))
+  #end
+#end
+
+## If not authorized, deny access
+#if(!$isAuthorized)
+  #if($util.defaultIfNull($ctx.request.headers["x-debug"], false))
+    $util.qr($ctx.stash.put("debug-auth-failed", "User $userId with groups $userGroups not authorized"))
+  #end
+  $util.unauthorized()
+#end
+
+{
+  "version": "2017-02-28",
+  "operation": "Scan",
+  "limit": $util.defaultIfNull($ctx.args.limit, 20),
+  "nextToken": $util.toJson($util.defaultIfNullOrBlank($ctx.args.nextToken, null))
+}
