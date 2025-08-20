@@ -1,5 +1,11 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
-import { CognitoIdentityProviderClient, ListUsersCommand } from '@aws-sdk/client-cognito-identity-provider';
+import { 
+  CognitoIdentityProviderClient, 
+  ListUsersCommand,
+  AdminCreateUserCommand,
+  AdminSetUserPasswordCommand,
+  MessageActionType
+} from '@aws-sdk/client-cognito-identity-provider';
 
 const cognitoClient = new CognitoIdentityProviderClient({
   region: process.env.AWS_REGION
@@ -39,7 +45,7 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
           'Content-Type': 'application/json',
           'Access-Control-Allow-Origin': '*',
           'Access-Control-Allow-Headers': 'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token',
-          'Access-Control-Allow-Methods': 'GET,OPTIONS'
+          'Access-Control-Allow-Methods': 'GET,POST,OPTIONS'
         },
         body: JSON.stringify({ 
           error: 'Insufficient permissions - admin access required',
@@ -57,34 +63,31 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
       throw new Error('USER_POOL_ID environment variable not set');
     }
 
-    console.log('Listing users from User Pool:', userPoolId);
+    const httpMethod = event.httpMethod;
+    console.log('HTTP Method:', httpMethod);
 
-    // List users from Cognito User Pool
-    const command = new ListUsersCommand({
-      UserPoolId: userPoolId,
-      Limit: 60, // Adjust as needed
-      AttributesToGet: ['email', 'given_name', 'family_name', 'email_verified']
-    });
-
-    const response = await cognitoClient.send(command);
-    console.log('Cognito response:', JSON.stringify(response, null, 2));
-
-    return {
-      statusCode: 200,
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Headers': 'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token',
-        'Access-Control-Allow-Methods': 'GET,OPTIONS'
-      },
-      body: JSON.stringify({
-        users: response.Users || [],
-        paginationToken: response.PaginationToken
-      })
-    };
+    if (httpMethod === 'GET') {
+      return await handleListUsers(userPoolId);
+    } else if (httpMethod === 'POST') {
+      return await handleCreateUser(userPoolId, event.body);
+    } else {
+      return {
+        statusCode: 405,
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Headers': 'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token',
+          'Access-Control-Allow-Methods': 'GET,POST,OPTIONS'
+        },
+        body: JSON.stringify({ 
+          error: 'Method not allowed',
+          allowedMethods: ['GET', 'POST']
+        })
+      };
+    }
 
   } catch (error) {
-    console.error('Error listing Cognito users:', error);
+    console.error('Error in Cognito Admin API:', error);
     
     return {
       statusCode: 500,
@@ -92,12 +95,177 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
         'Content-Type': 'application/json',
         'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Headers': 'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token',
-        'Access-Control-Allow-Methods': 'GET,OPTIONS'
+        'Access-Control-Allow-Methods': 'GET,POST,OPTIONS'
       },
       body: JSON.stringify({ 
-        error: 'Failed to list users',
+        error: 'Internal server error',
         message: error instanceof Error ? error.message : 'Unknown error'
       })
     };
   }
 };
+
+async function handleListUsers(userPoolId: string): Promise<APIGatewayProxyResult> {
+  console.log('Listing users from User Pool:', userPoolId);
+
+  // List users from Cognito User Pool
+  const command = new ListUsersCommand({
+    UserPoolId: userPoolId,
+    Limit: 60, // Adjust as needed
+    AttributesToGet: ['email', 'given_name', 'family_name', 'email_verified']
+  });
+
+  const response = await cognitoClient.send(command);
+  console.log('Cognito list users response:', JSON.stringify(response, null, 2));
+
+  return {
+    statusCode: 200,
+    headers: {
+      'Content-Type': 'application/json',
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Headers': 'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token',
+      'Access-Control-Allow-Methods': 'GET,POST,OPTIONS'
+    },
+    body: JSON.stringify({
+      users: response.Users || [],
+      paginationToken: response.PaginationToken
+    })
+  };
+}
+
+async function handleCreateUser(userPoolId: string, requestBody: string | null): Promise<APIGatewayProxyResult> {
+  if (!requestBody) {
+    return {
+      statusCode: 400,
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Headers': 'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token',
+        'Access-Control-Allow-Methods': 'GET,POST,OPTIONS'
+      },
+      body: JSON.stringify({ 
+        error: 'Request body is required'
+      })
+    };
+  }
+
+  let userData;
+  try {
+    userData = JSON.parse(requestBody);
+  } catch (error) {
+    return {
+      statusCode: 400,
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Headers': 'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token',
+        'Access-Control-Allow-Methods': 'GET,POST,OPTIONS'
+      },
+      body: JSON.stringify({ 
+        error: 'Invalid JSON in request body'
+      })
+    };
+  }
+
+  const { email, givenName, familyName, temporaryPassword, sendEmail } = userData;
+
+  if (!email || !givenName || !familyName || !temporaryPassword) {
+    return {
+      statusCode: 400,
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Headers': 'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token',
+        'Access-Control-Allow-Methods': 'GET,POST,OPTIONS'
+      },
+      body: JSON.stringify({ 
+        error: 'Missing required fields: email, givenName, familyName, temporaryPassword'
+      })
+    };
+  }
+
+  console.log('Creating user:', { email, givenName, familyName, sendEmail });
+
+  try {
+    // Create the user
+    const createCommand = new AdminCreateUserCommand({
+      UserPoolId: userPoolId,
+      Username: email, // Use email as username
+      UserAttributes: [
+        { Name: 'email', Value: email },
+        { Name: 'given_name', Value: givenName },
+        { Name: 'family_name', Value: familyName },
+        { Name: 'email_verified', Value: 'true' }
+      ],
+      TemporaryPassword: temporaryPassword,
+      MessageAction: sendEmail ? MessageActionType.RESEND : MessageActionType.SUPPRESS
+    });
+
+    const createResponse = await cognitoClient.send(createCommand);
+    console.log('User created successfully:', JSON.stringify(createResponse, null, 2));
+
+    // Set permanent password if provided
+    const setPasswordCommand = new AdminSetUserPasswordCommand({
+      UserPoolId: userPoolId,
+      Username: email,
+      Password: temporaryPassword,
+      Permanent: true
+    });
+
+    await cognitoClient.send(setPasswordCommand);
+    console.log('Password set as permanent');
+
+    return {
+      statusCode: 201,
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Headers': 'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token',
+        'Access-Control-Allow-Methods': 'GET,POST,OPTIONS'
+      },
+      body: JSON.stringify({
+        message: 'User created successfully',
+        user: {
+          username: createResponse.User?.Username,
+          email: email,
+          status: createResponse.User?.UserStatus
+        }
+      })
+    };
+
+  } catch (error) {
+    console.error('Error creating user:', error);
+    
+    let errorMessage = 'Failed to create user';
+    let statusCode = 500;
+    
+    if (error instanceof Error) {
+      errorMessage = error.message;
+      
+      // Handle specific Cognito errors
+      if (error.name === 'UsernameExistsException') {
+        statusCode = 409;
+        errorMessage = 'User with this email already exists';
+      } else if (error.name === 'InvalidPasswordException') {
+        statusCode = 400;
+        errorMessage = 'Password does not meet requirements';
+      } else if (error.name === 'InvalidParameterException') {
+        statusCode = 400;
+        errorMessage = 'Invalid parameters provided';
+      }
+    }
+    
+    return {
+      statusCode,
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Headers': 'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token',
+        'Access-Control-Allow-Methods': 'GET,POST,OPTIONS'
+      },
+      body: JSON.stringify({ 
+        error: errorMessage
+      })
+    };
+  }
+}
