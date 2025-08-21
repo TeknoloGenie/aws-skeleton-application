@@ -1,4 +1,6 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { AnalyticsService } from '../../services/analytics.service';
 import { GraphQLClientService } from '../../graphql/client';
 
@@ -19,6 +21,8 @@ interface LogEntry {
 
 @Component({
   selector: 'app-analytics-dashboard',
+  standalone: true,
+  imports: [CommonModule, FormsModule],
   templateUrl: './analytics-dashboard.component.html',
   styleUrls: ['./analytics-dashboard.component.css']
 })
@@ -32,9 +36,16 @@ export class AnalyticsDashboardComponent implements OnInit, OnDestroy {
     dateFrom: '',
     dateTo: ''
   };
+  
   currentPage = 1;
-  pageSize = 50;
-  subscription: any = null;
+  pageSize = 20;
+  totalLogs = 0;
+  isLoading = false;
+  
+  uniqueComponents: string[] = [];
+  uniqueActions: string[] = [];
+  
+  private refreshInterval: any;
 
   constructor(
     private analyticsService: AnalyticsService,
@@ -42,117 +53,84 @@ export class AnalyticsDashboardComponent implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
-    this.analyticsService.trackView('analytics-dashboard');
     this.loadLogs();
-    this.setupSubscription();
+    this.setupAutoRefresh();
+    this.analyticsService.trackView('analytics-dashboard');
   }
 
   ngOnDestroy(): void {
-    if (this.subscription) {
-      this.subscription.unsubscribe();
+    if (this.refreshInterval) {
+      clearInterval(this.refreshInterval);
     }
   }
 
-  get filteredLogs(): LogEntry[] {
-    let filtered = this.logs;
-
-    if (this.filters.search) {
-      const search = this.filters.search.toLowerCase();
-      filtered = filtered.filter(log => 
-        log.component.toLowerCase().includes(search) ||
-        log.action.toLowerCase().includes(search) ||
-        log.user?.name?.toLowerCase().includes(search)
-      );
-    }
-
-    if (this.filters.component) {
-      filtered = filtered.filter(log => log.component === this.filters.component);
-    }
-
-    if (this.filters.action) {
-      filtered = filtered.filter(log => log.action === this.filters.action);
-    }
-
-    if (this.filters.level) {
-      filtered = filtered.filter(log => log.level === this.filters.level);
-    }
-
-    if (this.filters.dateFrom) {
-      const fromDate = new Date(this.filters.dateFrom);
-      filtered = filtered.filter(log => new Date(log.createdAt) >= fromDate);
-    }
-
-    if (this.filters.dateTo) {
-      const toDate = new Date(this.filters.dateTo);
-      filtered = filtered.filter(log => new Date(log.createdAt) <= toDate);
-    }
-
-    return filtered.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-  }
-
-  get paginatedLogs(): LogEntry[] {
-    const start = (this.currentPage - 1) * this.pageSize;
-    const end = start + this.pageSize;
-    return this.filteredLogs.slice(start, end);
-  }
-
-  get totalPages(): number {
-    return Math.ceil(this.filteredLogs.length / this.pageSize);
-  }
-
-  get uniqueComponents(): string[] {
-    return [...new Set(this.logs.map(log => log.component))].sort();
-  }
-
-  get uniqueActions(): string[] {
-    return [...new Set(this.logs.map(log => log.action))].sort();
+  private setupAutoRefresh(): void {
+    // Refresh every 30 seconds
+    this.refreshInterval = setInterval(() => {
+      this.loadLogs();
+    }, 30000);
   }
 
   async loadLogs(): Promise<void> {
     try {
+      this.isLoading = true;
+      
       const query = `
-        query GetLogs($limit: Int, $nextToken: String) {
+        query ListLogs($limit: Int, $nextToken: String) {
           listLogs(limit: $limit, nextToken: $nextToken) {
-            items {
+            id
+            userId
+            action
+            component
+            level
+            metadata
+            createdAt
+            user {
               id
-              userId
-              action
-              component
-              level
-              metadata
-              createdAt
-              user {
-                id
-                name
-                email
-              }
+              name
+              email
             }
-            nextToken
           }
         }
       `;
 
-      const result = await this.graphqlClient.query(query, { limit: 1000 });
-      this.logs = result.data.listLogs.items;
-      
-      this.analyticsService.trackAction('logs-loaded', 'analytics-dashboard', { count: this.logs.length });
-    } catch (error) {
-      this.analyticsService.trackError('failed-to-load-logs', 'analytics-dashboard', { error: error.message });
+      const result = await this.graphqlClient.query(query, {
+        limit: this.pageSize * this.currentPage
+      });
+
+      if (result.data?.listLogs) {
+        this.logs = result.data.listLogs;
+        this.totalLogs = this.logs.length;
+        this.extractUniqueValues();
+      }
+    } catch (error: any) {
+      this.analyticsService.trackError('failed-to-load-logs', 'analytics-dashboard', { error: error?.message || 'Unknown error' });
+    } finally {
+      this.isLoading = false;
     }
   }
 
-  private setupSubscription(): void {
-    try {
-      // In a real implementation, this would set up a WebSocket subscription
-      // For now, we'll simulate it with periodic polling
-      this.subscription = setInterval(() => {
-        this.loadLogs();
-      }, 30000); // Refresh every 30 seconds
+  private extractUniqueValues(): void {
+    const components = new Set<string>();
+    const actions = new Set<string>();
+    
+    this.logs.forEach(log => {
+      if (log.component) components.add(log.component);
+      if (log.action) actions.add(log.action);
+    });
+    
+    this.uniqueComponents = Array.from(components).sort();
+    this.uniqueActions = Array.from(actions).sort();
+  }
 
-      this.analyticsService.trackAction('subscription-setup', 'analytics-dashboard');
-    } catch (error) {
-      this.analyticsService.trackError('failed-to-setup-subscription', 'analytics-dashboard', { error: error.message });
-    }
+  onFilterChange(): void {
+    this.currentPage = 1;
+    this.loadLogs();
+    this.analyticsService.trackAction('filter-changed', 'analytics-dashboard', this.filters);
+  }
+
+  onSearchChange(): void {
+    this.onFilterChange();
   }
 
   clearFilters(): void {
@@ -164,61 +142,127 @@ export class AnalyticsDashboardComponent implements OnInit, OnDestroy {
       dateFrom: '',
       dateTo: ''
     };
-    this.currentPage = 1;
+    this.onFilterChange();
     this.analyticsService.trackAction('filters-cleared', 'analytics-dashboard');
   }
 
-  exportLogs(): void {
-    try {
-      const csvData = this.filteredLogs.map(log => ({
-        timestamp: log.createdAt,
-        user: log.user?.name || log.userId,
-        component: log.component,
-        action: log.action,
-        level: log.level,
-        metadata: JSON.stringify(log.metadata || {})
-      }));
-
-      const csv = [
-        Object.keys(csvData[0]).join(','),
-        ...csvData.map(row => Object.values(row).map(val => `"${val}"`).join(','))
-      ].join('\n');
-
-      const blob = new Blob([csv], { type: 'text/csv' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `analytics-logs-${new Date().toISOString().split('T')[0]}.csv`;
-      a.click();
-      URL.revokeObjectURL(url);
-
-      this.analyticsService.trackAction('logs-exported', 'analytics-dashboard', { count: csvData.length });
-    } catch (error) {
-      this.analyticsService.trackError('export-failed', 'analytics-dashboard', { error: error.message });
+  get paginatedLogs(): LogEntry[] {
+    let filtered = this.logs;
+    
+    // Apply filters
+    if (this.filters.search) {
+      const search = this.filters.search.toLowerCase();
+      filtered = filtered.filter(log => 
+        log.action.toLowerCase().includes(search) ||
+        log.component.toLowerCase().includes(search) ||
+        log.user?.name?.toLowerCase().includes(search) ||
+        log.user?.email?.toLowerCase().includes(search)
+      );
     }
+    
+    if (this.filters.component) {
+      filtered = filtered.filter(log => log.component === this.filters.component);
+    }
+    
+    if (this.filters.action) {
+      filtered = filtered.filter(log => log.action === this.filters.action);
+    }
+    
+    if (this.filters.level) {
+      filtered = filtered.filter(log => log.level === this.filters.level);
+    }
+    
+    // Apply pagination
+    const startIndex = (this.currentPage - 1) * this.pageSize;
+    return filtered.slice(startIndex, startIndex + this.pageSize);
+  }
+
+  get filteredLogs(): LogEntry[] {
+    let filtered = this.logs;
+    
+    // Apply filters (same logic as paginatedLogs but without pagination)
+    if (this.filters.search) {
+      const search = this.filters.search.toLowerCase();
+      filtered = filtered.filter(log => 
+        log.action.toLowerCase().includes(search) ||
+        log.component.toLowerCase().includes(search) ||
+        log.user?.name?.toLowerCase().includes(search) ||
+        log.user?.email?.toLowerCase().includes(search)
+      );
+    }
+    
+    if (this.filters.component) {
+      filtered = filtered.filter(log => log.component === this.filters.component);
+    }
+    
+    if (this.filters.action) {
+      filtered = filtered.filter(log => log.action === this.filters.action);
+    }
+    
+    if (this.filters.level) {
+      filtered = filtered.filter(log => log.level === this.filters.level);
+    }
+    
+    return filtered;
+  }
+
+  get totalPages(): number {
+    return Math.ceil(this.filteredLogs.length / this.pageSize);
+  }
+
+  async exportLogs(): Promise<void> {
+    try {
+      this.analyticsService.trackAction('export-logs', 'analytics-dashboard');
+      
+      const csvContent = this.convertToCSV(this.logs);
+      const blob = new Blob([csvContent], { type: 'text/csv' });
+      const url = window.URL.createObjectURL(blob);
+      
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `analytics-logs-${new Date().toISOString().split('T')[0]}.csv`;
+      link.click();
+      
+      window.URL.revokeObjectURL(url);
+    } catch (error: any) {
+      this.analyticsService.trackError('export-failed', 'analytics-dashboard', { error: error?.message || 'Unknown error' });
+    }
+  }
+
+  private convertToCSV(logs: LogEntry[]): string {
+    const headers = ['ID', 'User ID', 'User Name', 'User Email', 'Action', 'Component', 'Level', 'Created At', 'Metadata'];
+    const rows = logs.map(log => [
+      log.id,
+      log.userId,
+      log.user?.name || '',
+      log.user?.email || '',
+      log.action,
+      log.component,
+      log.level,
+      log.createdAt,
+      JSON.stringify(log.metadata || {})
+    ]);
+    
+    return [headers, ...rows]
+      .map(row => row.map(field => `"${field}"`).join(','))
+      .join('\n');
   }
 
   formatTimestamp(timestamp: string): string {
     return new Date(timestamp).toLocaleString();
   }
 
-  previousPage(): void {
-    if (this.currentPage > 1) {
-      this.currentPage--;
-    }
-  }
-
   nextPage(): void {
     if (this.currentPage < this.totalPages) {
       this.currentPage++;
+      this.loadLogs();
     }
   }
 
-  onSearchChange(): void {
-    this.analyticsService.trackAction('search-logs', 'analytics-dashboard');
-  }
-
-  onFilterChange(filterType: string): void {
-    this.analyticsService.trackAction('filter-' + filterType, 'analytics-dashboard');
+  previousPage(): void {
+    if (this.currentPage > 1) {
+      this.currentPage--;
+      this.loadLogs();
+    }
   }
 }

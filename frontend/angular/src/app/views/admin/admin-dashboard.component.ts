@@ -1,5 +1,9 @@
 import { Component, OnInit } from '@angular/core';
+import { CommonModule } from '@angular/common';
 import { AnalyticsService } from '../../services/analytics.service';
+import { AnalyticsDashboardComponent } from './analytics-dashboard.component';
+import { DataManagementComponent } from './data-management.component';
+import { AppConfigurationComponent } from './app-configuration.component';
 
 interface Tab {
   id: string;
@@ -8,6 +12,13 @@ interface Tab {
 
 @Component({
   selector: 'app-admin-dashboard',
+  standalone: true,
+  imports: [
+    CommonModule,
+    AnalyticsDashboardComponent,
+    DataManagementComponent,
+    AppConfigurationComponent
+  ],
   templateUrl: './admin-dashboard.component.html',
   styleUrls: ['./admin-dashboard.component.css']
 })
@@ -33,8 +44,8 @@ export class AdminDashboardComponent implements OnInit {
       // This would get current user from auth service
       this.currentUser = { name: 'Admin User' };
       this.analyticsService.trackAction('dashboard-loaded', 'admin-dashboard');
-    } catch (error) {
-      this.analyticsService.trackError('failed-to-load-user', 'admin-dashboard', { error: error.message });
+    } catch (error: any) {
+      this.analyticsService.trackError('failed-to-load-user', 'admin-dashboard', { error: error?.message || 'Unknown error' });
     }
   }
 
@@ -48,8 +59,8 @@ export class AdminDashboardComponent implements OnInit {
       this.analyticsService.trackAction('admin-signout', 'admin-dashboard');
       // Implement sign out logic
       window.location.href = '/login';
-    } catch (error) {
-      this.analyticsService.trackError('signout-failed', 'admin-dashboard', { error: error.message });
+    } catch (error: any) {
+      this.analyticsService.trackError('signout-failed', 'admin-dashboard', { error: error?.message || 'Unknown error' });
     }
   }
 }

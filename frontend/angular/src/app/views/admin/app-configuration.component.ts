@@ -1,4 +1,6 @@
 import { Component, OnInit } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { AnalyticsService } from '../../services/analytics.service';
 import { GraphQLClientService } from '../../graphql/client';
 
@@ -17,6 +19,8 @@ interface Settings {
 
 @Component({
   selector: 'app-app-configuration',
+  standalone: true,
+  imports: [CommonModule, FormsModule],
   templateUrl: './app-configuration.component.html',
   styleUrls: ['./app-configuration.component.css']
 })
@@ -28,15 +32,17 @@ export class AppConfigurationComponent implements OnInit {
     enable_error_tracking: true,
     session_timeout_minutes: 60,
     max_login_attempts: 5,
-    enable_user_impersonation: true,
+    enable_user_impersonation: false,
     timezone_detection: true,
     admin_dashboard_refresh: 30,
     export_max_records: 10000
   };
 
-  originalSettings: Settings = {} as Settings;
-  changedSettings: string[] = [];
+  originalSettings: Settings = { ...this.settings };
+  hasChanges = false;
   lastUpdated: string | null = null;
+  isLoading = false;
+  isSaving = false;
 
   constructor(
     private analyticsService: AnalyticsService,
@@ -48,136 +54,74 @@ export class AppConfigurationComponent implements OnInit {
     this.analyticsService.trackView('app-configuration');
   }
 
-  get hasChanges(): boolean {
-    return this.changedSettings.length > 0;
-  }
-
   async loadSettings(): Promise<void> {
     try {
+      this.isLoading = true;
+      
       const query = `
-        query GetSystemSettings {
-          listSettings(filter: { type: { eq: "SYSTEM" }, entityId: { eq: "GLOBAL" } }) {
+        query ListSettings {
+          listSettings {
             id
             key
             value
-            isActive
+            category
             updatedAt
           }
         }
       `;
 
       const result = await this.graphqlClient.query(query);
-      const systemSettings = result.data.listSettings || [];
       
-      systemSettings.forEach((setting: any) => {
-        if (!setting.isActive) return;
+      if (result.data?.listSettings) {
+        const settings = result.data.listSettings;
         
-        const key = setting.key;
-        const value = setting.value;
+        // Map settings to our interface
+        settings.forEach((setting: any) => {
+          if (setting.category === 'app_config') {
+            const key = setting.key as keyof Settings;
+            if (key in this.settings) {
+              // Parse the value based on the setting type
+              let value = setting.value;
+              if (typeof this.settings[key] === 'number') {
+                value = parseInt(value, 10);
+              } else if (typeof this.settings[key] === 'boolean') {
+                value = value === 'true';
+              }
+              (this.settings as any)[key] = value;
+            }
+          }
+        });
         
-        switch (key) {
-          case 'log_retention_days':
-            this.settings.log_retention_days = value.days || 90;
-            break;
-          case 'batch_log_interval':
-            this.settings.batch_log_interval = value.seconds || 5;
-            break;
-          case 'batch_log_size':
-            this.settings.batch_log_size = value.count || 50;
-            break;
-          case 'enable_error_tracking':
-            this.settings.enable_error_tracking = value.enabled !== false;
-            break;
-          case 'session_timeout_minutes':
-            this.settings.session_timeout_minutes = value.minutes || 60;
-            break;
-          case 'max_login_attempts':
-            this.settings.max_login_attempts = value.attempts || 5;
-            break;
-          case 'enable_user_impersonation':
-            this.settings.enable_user_impersonation = value.enabled !== false;
-            break;
-          case 'timezone_detection':
-            this.settings.timezone_detection = value.enabled !== false;
-            break;
-          case 'admin_dashboard_refresh':
-            this.settings.admin_dashboard_refresh = value.seconds || 30;
-            break;
-          case 'export_max_records':
-            this.settings.export_max_records = value.count || 10000;
-            break;
-        }
-        
-        if (setting.updatedAt && (!this.lastUpdated || setting.updatedAt > this.lastUpdated)) {
-          this.lastUpdated = setting.updatedAt;
-        }
+        this.originalSettings = { ...this.settings };
+        this.lastUpdated = settings[0]?.updatedAt || null;
+      }
+    } catch (error: any) {
+      this.analyticsService.trackError('failed-to-load-settings', 'app-configuration', { error: error?.message || 'Unknown error' });
+    } finally {
+      this.isLoading = false;
+    }
+  }
+
+  onSettingChange(): void {
+    this.hasChanges = JSON.stringify(this.settings) !== JSON.stringify(this.originalSettings);
+    
+    if (this.hasChanges) {
+      this.analyticsService.trackAction('settings-modified', 'app-configuration');
+    }
+  }
+
+  async saveSettings(): Promise<void> {
+    try {
+      this.isSaving = true;
+      
+      this.analyticsService.trackAction('save-settings', 'app-configuration', {
+        changedSettings: this.getChangedSettings()
       });
 
-      this.originalSettings = { ...this.settings };
-      this.changedSettings = [];
-
-      this.analyticsService.trackAction('settings-loaded', 'app-configuration', { count: systemSettings.length });
-    } catch (error) {
-      this.analyticsService.trackError('failed-to-load-settings', 'app-configuration', { error: error.message });
-    }
-  }
-
-  markChanged(key: string): void {
-    if (!this.changedSettings.includes(key)) {
-      this.changedSettings.push(key);
-    }
-    this.analyticsService.trackAction('setting-changed', 'app-configuration', { key });
-  }
-
-  async saveAllSettings(): Promise<void> {
-    try {
-      const updates = [];
+      // Save each changed setting
+      const changedSettings = this.getChangedSettings();
       
-      for (const key of this.changedSettings) {
-        const value = this.settings[key as keyof Settings];
-        let settingValue;
-        
-        switch (key) {
-          case 'log_retention_days':
-            settingValue = { days: value };
-            break;
-          case 'batch_log_interval':
-            settingValue = { seconds: value };
-            break;
-          case 'batch_log_size':
-            settingValue = { count: value };
-            break;
-          case 'enable_error_tracking':
-            settingValue = { enabled: value };
-            break;
-          case 'session_timeout_minutes':
-            settingValue = { minutes: value };
-            break;
-          case 'max_login_attempts':
-            settingValue = { attempts: value };
-            break;
-          case 'enable_user_impersonation':
-            settingValue = { enabled: value };
-            break;
-          case 'timezone_detection':
-            settingValue = { enabled: value };
-            break;
-          case 'admin_dashboard_refresh':
-            settingValue = { seconds: value };
-            break;
-          case 'export_max_records':
-            settingValue = { count: value };
-            break;
-        }
-
-        updates.push({
-          key,
-          value: settingValue,
-          oldValue: this.originalSettings[key as keyof Settings]
-        });
-      }
-
-      for (const update of updates) {
+      for (const [key, value] of Object.entries(changedSettings)) {
         const mutation = `
           mutation UpdateSetting($input: UpdateSettingInput!) {
             updateSetting(input: $input) {
@@ -188,42 +132,98 @@ export class AppConfigurationComponent implements OnInit {
             }
           }
         `;
-
+        
         await this.graphqlClient.query(mutation, {
           input: {
-            id: `system-${update.key.replace(/_/g, '-')}`,
-            type: 'SYSTEM',
-            key: update.key,
-            value: update.value,
-            entityId: 'GLOBAL',
-            isActive: true
+            key,
+            value: String(value),
+            category: 'app_config'
           }
         });
       }
-
+      
       this.originalSettings = { ...this.settings };
-      this.changedSettings = [];
+      this.hasChanges = false;
       this.lastUpdated = new Date().toISOString();
-
-      this.analyticsService.trackAction('settings-saved', 'app-configuration', { 
-        count: updates.length,
-        keys: updates.map(u => u.key)
-      });
-
-      alert('Settings saved successfully!');
-    } catch (error) {
-      this.analyticsService.trackError('failed-to-save-settings', 'app-configuration', { error: error.message });
-      alert('Failed to save settings. Please try again.');
+      
+      this.analyticsService.trackAction('settings-saved', 'app-configuration');
+      
+    } catch (error: any) {
+      this.analyticsService.trackError('failed-to-save-settings', 'app-configuration', { error: error?.message || 'Unknown error' });
+    } finally {
+      this.isSaving = false;
     }
   }
 
-  resetChanges(): void {
+  private getChangedSettings(): Record<string, any> {
+    const changed: Record<string, any> = {};
+    
+    for (const key in this.settings) {
+      if (this.settings[key as keyof Settings] !== this.originalSettings[key as keyof Settings]) {
+        changed[key] = this.settings[key as keyof Settings];
+      }
+    }
+    
+    return changed;
+  }
+
+  get changedSettings(): Array<{key: string, value: any}> {
+    const changed = this.getChangedSettings();
+    return Object.entries(changed).map(([key, value]) => ({ key, value }));
+  }
+
+  resetSettings(): void {
     this.settings = { ...this.originalSettings };
-    this.changedSettings = [];
+    this.hasChanges = false;
     this.analyticsService.trackAction('settings-reset', 'app-configuration');
   }
 
-  formatTimestamp(timestamp: string): string {
+  resetChanges(): void {
+    this.resetSettings();
+  }
+
+  formatTimestamp(timestamp: string | null): string {
+    if (!timestamp) return 'Never';
     return new Date(timestamp).toLocaleString();
+  }
+
+  exportSettings(): void {
+    const settingsJson = JSON.stringify(this.settings, null, 2);
+    const blob = new Blob([settingsJson], { type: 'application/json' });
+    const url = window.URL.createObjectURL(blob);
+    
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `app-settings-${new Date().toISOString().split('T')[0]}.json`;
+    link.click();
+    
+    window.URL.revokeObjectURL(url);
+    
+    this.analyticsService.trackAction('settings-exported', 'app-configuration');
+  }
+
+  async importSettings(event: Event): Promise<void> {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    
+    if (!file) return;
+    
+    try {
+      const text = await file.text();
+      const importedSettings = JSON.parse(text);
+      
+      // Validate the imported settings
+      for (const key in importedSettings) {
+        if (key in this.settings) {
+          (this.settings as any)[key] = importedSettings[key];
+        }
+      }
+      
+      this.onSettingChange();
+      this.analyticsService.trackAction('settings-imported', 'app-configuration');
+      
+    } catch (error: any) {
+      this.analyticsService.trackError('settings-import-failed', 'app-configuration', { error: error?.message || 'Unknown error' });
+    }
   }
 }

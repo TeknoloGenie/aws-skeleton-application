@@ -4,7 +4,7 @@
     <div class="config-actions">
       <button (click)="loadSettings()" class="btn-secondary">Refresh</button>
       <button 
-        (click)="saveAllSettings()" 
+        (click)="saveSettings()" 
         class="btn-primary" 
         [disabled]="!hasChanges"
       >
@@ -22,7 +22,7 @@
           <input 
             type="number" 
             [(ngModel)]="settings.log_retention_days"
-            (input)="markChanged('log_retention_days')"
+            (input)="onSettingChange()"
             min="1" 
             max="365"
             class="form-input"
@@ -35,7 +35,7 @@
           <input 
             type="number" 
             [(ngModel)]="settings.batch_log_interval"
-            (input)="markChanged('batch_log_interval')"
+            (input)="onSettingChange()"
             min="1" 
             max="60"
             class="form-input"
@@ -48,7 +48,7 @@
           <input 
             type="number" 
             [(ngModel)]="settings.batch_log_size"
-            (input)="markChanged('batch_log_size')"
+            (input)="onSettingChange()"
             min="10" 
             max="100"
             class="form-input"
@@ -61,7 +61,7 @@
           <input 
             type="checkbox" 
             [(ngModel)]="settings.enable_error_tracking"
-            (change)="markChanged('enable_error_tracking')"
+            (change)="onSettingChange()"
             class="form-checkbox"
           />
           <small>Automatically track and log errors</small>
@@ -77,7 +77,7 @@
           <input 
             type="number" 
             [(ngModel)]="settings.session_timeout_minutes"
-            (input)="markChanged('session_timeout_minutes')"
+            (input)="onSettingChange()"
             min="5" 
             max="480"
             class="form-input"
@@ -90,7 +90,7 @@
           <input 
             type="number" 
             [(ngModel)]="settings.max_login_attempts"
-            (input)="markChanged('max_login_attempts')"
+            (input)="onSettingChange()"
             min="3" 
             max="10"
             class="form-input"
@@ -103,7 +103,7 @@
           <input 
             type="checkbox" 
             [(ngModel)]="settings.enable_user_impersonation"
-            (change)="markChanged('enable_user_impersonation')"
+            (change)="onSettingChange()"
             class="form-checkbox"
           />
           <small>Allow admin user impersonation</small>
@@ -119,7 +119,7 @@
           <input 
             type="checkbox" 
             [(ngModel)]="settings.timezone_detection"
-            (change)="markChanged('timezone_detection')"
+            (change)="onSettingChange()"
             class="form-checkbox"
           />
           <small>Auto-detect user timezone for datetime display</small>
@@ -130,7 +130,7 @@
           <input 
             type="number" 
             [(ngModel)]="settings.admin_dashboard_refresh"
-            (input)="markChanged('admin_dashboard_refresh')"
+            (input)="onSettingChange()"
             min="10" 
             max="300"
             class="form-input"
@@ -148,7 +148,7 @@
           <input 
             type="number" 
             [(ngModel)]="settings.export_max_records"
-            (input)="markChanged('export_max_records')"
+            (input)="onSettingChange()"
             min="1000" 
             max="100000"
             step="1000"
