@@ -98,41 +98,7 @@ const loadPosts = async () => {
       query: listPosts as any
     }) as any
     
-    posts.value = result.data?.listPosts?.items || []
-
-    // Mock data for development
-    if (posts.value.length === 0) {
-      posts.value = [
-        {
-          id: '1',
-          title: 'Getting Started with AWS CDK',
-          content: 'AWS CDK is a powerful tool for defining cloud infrastructure using familiar programming languages...',
-          userId: 'user-1',
-          published: true,
-          createdAt: new Date().toISOString()
-        },
-        {
-          id: '2',
-          title: 'Building Scalable APIs with AppSync',
-          content: 'AWS AppSync provides a managed GraphQL service that makes it easy to build scalable APIs...',
-          userId: 'user-1',
-          published: true,
-          createdAt: new Date().toISOString()
-        },
-        {
-          id: '3',
-          title: 'User Experience Best Practices',
-          content: 'Creating great user experiences requires understanding your users and their needs...',
-          userId: 'user-2',
-          published: false,
-          createdAt: new Date().toISOString()
-        }
-      ]
-    }
-
-    // Mock user data
-    users.value.set('user-1', 'John Doe')
-    users.value.set('user-2', 'Jane Smith')
+    posts.value = result.data?.listPosts || []
     
   } catch (error) {
     console.error('Error loading posts:', error)
