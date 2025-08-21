@@ -10,41 +10,46 @@ async function initializeApp() {
   let awsExports;
   try {
     awsExports = (await import('./aws-exports.js')).default;
-    console.log('Using generated AWS configuration:', awsExports);
-    
-    // Configure Amplify with the aws-exports format
-    Amplify.configure(awsExports);
-    console.log('Amplify configured successfully');
-  } catch (error) {
-    console.error('Failed to load AWS configuration:', error);
-    console.warn('Using fallback configuration for development');
-    
-    // Fallback configuration for local development
-    const fallbackConfig = {
-      aws_project_region: 'us-east-1',
-      aws_cognito_region: 'us-east-1',
-      aws_user_pools_id: 'us-east-1_XXXXXXXXX',
-      aws_user_pools_web_client_id: 'xxxxxxxxxxxxxxxxxxxxxxxxxx',
-      aws_cognito_username_attributes: ['email'],
-      aws_cognito_social_providers: [],
-      aws_cognito_signup_attributes: ['email'],
-      aws_cognito_mfa_configuration: 'OFF',
-      aws_cognito_password_protection_settings: {
-        passwordPolicyMinLength: 8,
-        passwordPolicyCharacters: []
+    console.log('Using generated AWS configuration');
+  } catch {
+    console.warn('Generated AWS configuration not found, using fallback configuration');
+    // Fallback configuration for local development using Amplify v6 format
+    awsExports = {
+      Auth: {
+        Cognito: {
+          userPoolId: 'us-east-1_XXXXXXXXX',
+          userPoolClientId: 'xxxxxxxxxxxxxxxxxxxxxxxxxx',
+          signUpVerificationMethod: 'code' as const,
+          loginWith: {
+            email: true,
+            username: false,
+            phone: false
+          },
+          passwordFormat: {
+            minLength: 8,
+            requireLowercase: false,
+            requireUppercase: false,
+            requireNumbers: false,
+            requireSpecialCharacters: false
+          }
+        }
       },
-      aws_cognito_verification_mechanisms: ['email'],
-      aws_appsync_graphqlEndpoint: 'https://localhost:3000/graphql',
-      aws_appsync_region: 'us-east-1',
-      aws_appsync_authenticationType: 'AMAZON_COGNITO_USER_POOLS'
+      API: {
+        GraphQL: {
+          endpoint: 'https://xxxxxxxxxxxxxxxxxxxxxxxxxx.appsync-api.us-east-1.amazonaws.com/graphql',
+          region: 'us-east-1',
+          defaultAuthMode: 'userPool' as const
+        }
+      }
     };
-    
-    Amplify.configure(fallbackConfig);
   }
+
+  // Configure Amplify with generated configuration
+  Amplify.configure(awsExports);
 
   // Bootstrap the Angular application with proper config
   bootstrapApplication(AppComponent, appConfig)
-    .catch(err => console.error('Failed to bootstrap Angular app:', err));
+    .catch(err => console.error(err));
 }
 
 // Initialize the application
