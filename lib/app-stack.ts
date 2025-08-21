@@ -903,12 +903,15 @@ export class AppStack extends cdk.Stack {
       layers: [this.cognitoLayer],
     });
 
-    // Grant permissions to list users
+    // Grant permissions to manage users
     cognitoAdminFunction.addToRolePolicy(new iam.PolicyStatement({
       effect: iam.Effect.ALLOW,
       actions: [
         'cognito-idp:ListUsers',
-        'cognito-idp:AdminGetUser'
+        'cognito-idp:AdminGetUser',
+        'cognito-idp:AdminCreateUser',
+        'cognito-idp:AdminSetUserPassword',
+        'cognito-idp:AdminUpdateUserAttributes'
       ],
       resources: [this.userPool.userPoolArn]
     }));
@@ -944,6 +947,12 @@ export class AppStack extends cdk.Stack {
 
     // Add GET method for listing users
     usersResource.addMethod('GET', new apigateway.LambdaIntegration(cognitoAdminFunction), {
+      authorizer,
+      authorizationType: apigateway.AuthorizationType.COGNITO
+    });
+
+    // Add POST method for creating users
+    usersResource.addMethod('POST', new apigateway.LambdaIntegration(cognitoAdminFunction), {
       authorizer,
       authorizationType: apigateway.AuthorizationType.COGNITO
     });
