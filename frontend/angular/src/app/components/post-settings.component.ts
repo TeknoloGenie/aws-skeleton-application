@@ -294,19 +294,19 @@ export class PostSettingsComponent implements OnInit, OnChanges {
             settings.forEach((setting: any) => {
               if (setting.key === 'visibility') {
                 this.visibilitySettings = { ...this.visibilitySettings, ...setting.value };
-                this.settingIds.visibility = setting.id;
+                this.settingIds['visibility'] = setting.id;
               } else if (setting.key === 'formatting') {
                 this.formattingSettings = { ...this.formattingSettings, ...setting.value };
-                this.settingIds.formatting = setting.id;
+                this.settingIds['formatting'] = setting.id;
               } else if (setting.key === 'seo') {
                 this.seoSettings = { ...this.seoSettings, ...setting.value };
-                this.settingIds.seo = setting.id;
+                this.settingIds['seo'] = setting.id;
               }
             });
           }
           this.loading = false;
         },
-        error: (err) => {
+        error: (err: any) => {
           this.error = err.message;
           this.loading = false;
         }
@@ -363,7 +363,11 @@ export class PostSettingsComponent implements OnInit, OnChanges {
           mutation: CREATE_SETTING,
           variables: { input: settingInput }
         }).toPromise();
-        this.settingIds[key] = result.data.createSetting.id;
+        
+        if (result?.data) {
+          const data = result.data as any;
+          this.settingIds[key] = data.createSetting?.id;
+        }
       }
 
       this.saveStatus = {

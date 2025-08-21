@@ -8,21 +8,21 @@
         class="search-input"
       />
       
-      <select [(ngModel)]="filters.component" (change)="onFilterChange('component')">
+      <select [(ngModel)]="filters.component" (change)="onFilterChange()">
         <option value="">All Components</option>
         <option *ngFor="let component of uniqueComponents" [value]="component">
           {{ component }}
         </option>
       </select>
 
-      <select [(ngModel)]="filters.action" (change)="onFilterChange('action')">
+      <select [(ngModel)]="filters.action" (change)="onFilterChange()">
         <option value="">All Actions</option>
         <option *ngFor="let action of uniqueActions" [value]="action">
           {{ action }}
         </option>
       </select>
 
-      <select [(ngModel)]="filters.level" (change)="onFilterChange('level')">
+      <select [(ngModel)]="filters.level" (change)="onFilterChange()">
         <option value="">All Levels</option>
         <option value="info">Info</option>
         <option value="warn">Warning</option>
@@ -31,14 +31,14 @@
 
       <input 
         [(ngModel)]="filters.dateFrom"
-        (change)="onFilterChange('date-from')"
+        (change)="onFilterChange()"
         type="datetime-local" 
         class="date-input"
       />
       
       <input 
         [(ngModel)]="filters.dateTo"
-        (change)="onFilterChange('date-to')"
+        (change)="onFilterChange()"
         type="datetime-local" 
         class="date-input"
       />

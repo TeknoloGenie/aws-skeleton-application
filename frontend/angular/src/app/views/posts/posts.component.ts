@@ -1,31 +1,64 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { GraphQLClientService } from '../../graphql/client';
+import { listPosts, createPost, updatePost, deletePost } from '../../graphql/queries';
 
 interface Post {
   id: string;
   title: string;
   content: string;
-  published: boolean;
   userId: string;
+  published: boolean;
   createdAt: string;
+  updatedAt: string;
+  user: {
+    id: string;
+    name: string;
+    email: string;
+  };
 }
 
-interface User {
-  id: string;
-  name: string;
+interface PostForm {
+  title: string;
+  content: string;
+  published: boolean;
 }
 
 @Component({
   selector: 'app-posts',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, FormsModule],
   template: `
     <div class="min-h-screen bg-gray-50 py-8">
       <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         <!-- Header -->
         <div class="mb-8">
-          <h1 class="text-3xl font-bold text-gray-900">Posts</h1>
-          <p class="mt-2 text-gray-600">Manage your blog posts</p>
+          <div class="flex justify-between items-center">
+            <div>
+              <h1 class="text-3xl font-bold text-gray-900">Posts</h1>
+              <p class="mt-2 text-gray-600">Manage your blog posts</p>
+            </div>
+            <button 
+              (click)="openCreateDialog()"
+              class="btn-primary"
+            >
+              <svg class="-ml-1 mr-2 h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"></path>
+              </svg>
+              New Post
+            </button>
+          </div>
+        </div>
+
+        <!-- Error State -->
+        <div *ngIf="error" class="bg-red-50 border border-red-200 rounded-md p-4 mb-6">
+          <div class="flex">
+            <div class="ml-3">
+              <h3 class="text-sm font-medium text-red-800">Error loading posts</h3>
+              <div class="mt-2 text-sm text-red-700">{{ error }}</div>
+            </div>
+          </div>
         </div>
 
         <!-- Loading State -->
@@ -63,15 +96,24 @@ interface User {
                 </p>
                 
                 <div class="flex items-center text-sm text-gray-500">
-                  <span>By {{ getUserName(post.userId) }}</span>
+                  <span>By {{ getUserName(post) }}</span>
                   <span class="mx-2">•</span>
                   <span>{{ formatDate(post.createdAt) }}</span>
                 </div>
               </div>
               
-              <div class="ml-4 flex-shrink-0">
-                <button class="text-blue-600 hover:text-blue-900 text-sm font-medium">
+              <div class="ml-4 flex-shrink-0 flex space-x-2">
+                <button 
+                  (click)="openEditDialog(post)"
+                  class="text-blue-600 hover:text-blue-900 text-sm font-medium"
+                >
                   Edit
+                </button>
+                <button 
+                  (click)="deletePostConfirm(post)"
+                  class="text-red-600 hover:text-red-900 text-sm font-medium"
+                >
+                  Delete
                 </button>
               </div>
             </div>
@@ -87,12 +129,83 @@ interface User {
             <h3 class="mt-2 text-sm font-medium text-gray-900">No posts</h3>
             <p class="mt-1 text-sm text-gray-500">Get started by creating a new post.</p>
             <div class="mt-6">
-              <button class="btn-primary">
+              <button (click)="openCreateDialog()" class="btn-primary">
                 <svg class="-ml-1 mr-2 h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
                   <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"></path>
                 </svg>
                 New Post
               </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Create/Edit Dialog -->
+        <div *ngIf="showDialog" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+          <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+            <div class="mt-3">
+              <h3 class="text-lg font-medium text-gray-900 mb-4">
+                {{ isEditing ? 'Edit Post' : 'Create New Post' }}
+              </h3>
+              
+              <form (ngSubmit)="submitPostForm()">
+                <div class="mb-4">
+                  <label class="block text-sm font-medium text-gray-700 mb-2">
+                    Title *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    [(ngModel)]="postForm.title"
+                    name="title"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Enter post title"
+                  />
+                </div>
+
+                <div class="mb-4">
+                  <label class="block text-sm font-medium text-gray-700 mb-2">
+                    Content *
+                  </label>
+                  <textarea
+                    required
+                    [(ngModel)]="postForm.content"
+                    name="content"
+                    rows="6"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Enter post content"
+                  ></textarea>
+                </div>
+
+                <div class="mb-6">
+                  <label class="flex items-center">
+                    <input
+                      type="checkbox"
+                      [(ngModel)]="postForm.published"
+                      name="published"
+                      class="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+                    />
+                    <span class="ml-2 text-sm text-gray-700">Publish immediately</span>
+                  </label>
+                </div>
+
+                <div class="flex justify-end space-x-3">
+                  <button
+                    type="button"
+                    (click)="closeDialog()"
+                    class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200"
+                    [disabled]="submitting"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    class="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 disabled:opacity-50"
+                    [disabled]="submitting"
+                  >
+                    {{ submitting ? 'Saving...' : (isEditing ? 'Update Post' : 'Create Post') }}
+                  </button>
+                </div>
+              </form>
             </div>
           </div>
         </div>
@@ -119,65 +232,157 @@ interface User {
 })
 export class PostsComponent implements OnInit {
   posts: Post[] = [];
-  users: User[] = [];
   loading = true;
+  error = '';
+  showDialog = false;
+  isEditing = false;
+  editingPost: Post | null = null;
+  submitting = false;
+
+  postForm: PostForm = {
+    title: '',
+    content: '',
+    published: false
+  };
+
+  constructor(private graphqlClient: GraphQLClientService) {}
 
   ngOnInit() {
+    console.log('PostsComponent initialized');
     this.loadPosts();
+  }
+
+  async loadPosts() {
+    console.log('=== LOADING POSTS ===');
+    this.loading = true;
+    this.error = '';
+    
+    try {
+      console.log('1. About to call GraphQL client...');
+      console.log('2. Query:', listPosts);
+      
+      const result = await this.graphqlClient.query(listPosts, {});
+      console.log('3. Raw GraphQL result:', JSON.stringify(result, null, 2));
+      
+      if (result.data && result.data.listPosts) {
+        this.posts = result.data.listPosts;
+        console.log('4. Successfully loaded posts:', this.posts.length, 'posts');
+        console.log('5. Posts data:', this.posts);
+      } else {
+        console.warn('4. No posts data in result structure:', result);
+        this.posts = [];
+      }
+    } catch (err: any) {
+      this.error = err?.message || 'Failed to load posts';
+      console.error('4. Error loading posts:', err);
+      console.error('5. Error details:', {
+        message: err?.message,
+        stack: err?.stack,
+        name: err?.name
+      });
+      this.posts = [];
+    } finally {
+      this.loading = false;
+      console.log('6. Loading complete. Posts count:', this.posts.length);
+      console.log('=== END LOADING POSTS ===');
+    }
   }
 
   formatDate(dateString: string): string {
     return new Date(dateString).toLocaleDateString();
   }
 
-  getUserName(userId: string): string {
-    const user = this.users.find(u => u.id === userId);
-    return user ? user.name : 'Unknown User';
+  getUserName(post: Post): string {
+    return post.user?.name || 'Unknown User';
   }
 
-  private async loadPosts() {
-    try {
-      // TODO: Replace with actual GraphQL queries
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      this.users = [
-        { id: '1', name: 'John Doe' },
-        { id: '2', name: 'Jane Smith' },
-        { id: '3', name: 'Bob Johnson' }
-      ];
+  openCreateDialog() {
+    this.isEditing = false;
+    this.editingPost = null;
+    this.postForm = {
+      title: '',
+      content: '',
+      published: false
+    };
+    this.showDialog = true;
+  }
 
-      this.posts = [
-        {
-          id: '1',
-          title: 'Getting Started with AWS Application Accelerator',
-          content: 'Learn how to build scalable applications using our model-driven framework. This comprehensive guide covers everything from setup to deployment, including best practices for GraphQL APIs, authentication, and CI/CD pipelines.',
-          published: true,
-          userId: '1',
-          createdAt: '2024-01-15'
-        },
-        {
-          id: '2',
-          title: 'Building Real-time Applications with GraphQL Subscriptions',
-          content: 'Discover how to implement real-time features in your applications using GraphQL subscriptions. We\'ll cover subscription setup, client-side implementation, and performance optimization techniques.',
-          published: true,
-          userId: '2',
-          createdAt: '2024-01-14'
-        },
-        {
-          id: '3',
-          title: 'Advanced Security Patterns in Serverless Applications',
-          content: 'Explore advanced security patterns including owner-based access control, group-based authorization, and field-level security. Learn how to implement these patterns in your AWS serverless applications.',
-          published: false,
-          userId: '3',
-          createdAt: '2024-01-13'
-        }
-      ];
+  openEditDialog(post: Post) {
+    this.isEditing = true;
+    this.editingPost = post;
+    this.postForm = {
+      title: post.title,
+      content: post.content,
+      published: post.published
+    };
+    this.showDialog = true;
+  }
+
+  closeDialog() {
+    this.showDialog = false;
+    this.isEditing = false;
+    this.editingPost = null;
+    this.submitting = false;
+  }
+
+  async submitPostForm() {
+    if (this.submitting) return;
+    
+    this.submitting = true;
+    
+    try {
+      if (this.isEditing && this.editingPost) {
+        // Update existing post
+        const result = await this.graphqlClient.mutate(updatePost, {
+          input: {
+            id: this.editingPost.id,
+            title: this.postForm.title,
+            content: this.postForm.content,
+            published: this.postForm.published
+          }
+        });
+        
+        console.log('Update post result:', result);
+      } else {
+        // Create new post
+        const result = await this.graphqlClient.mutate(createPost, {
+          input: {
+            title: this.postForm.title,
+            content: this.postForm.content,
+            published: this.postForm.published
+          }
+        });
+        
+        console.log('Create post result:', result);
+      }
       
-      this.loading = false;
-    } catch (error) {
-      console.error('Error loading posts:', error);
-      this.loading = false;
+      this.closeDialog();
+      await this.loadPosts(); // Refresh the list
+    } catch (err: any) {
+      this.error = err?.message || 'Failed to save post';
+      console.error('Error saving post:', err);
+      alert('Failed to save post: ' + (err?.message || 'Unknown error'));
+    } finally {
+      this.submitting = false;
+    }
+  }
+
+  async deletePostConfirm(post: Post) {
+    if (!confirm(`Are you sure you want to delete "${post.title}"?`)) {
+      return;
+    }
+    
+    try {
+      const result = await this.graphqlClient.mutate(deletePost, {
+        input: { id: post.id }
+      });
+      
+      console.log('Delete post result:', result);
+      await this.loadPosts(); // Refresh the list
+    } catch (err: any) {
+      this.error = err?.message || 'Failed to delete post';
+      console.error('Error deleting post:', err);
+      alert('Failed to delete post: ' + (err?.message || 'Unknown error'));
     }
   }
 }

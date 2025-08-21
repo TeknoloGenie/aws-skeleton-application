@@ -2,8 +2,8 @@ import { gql } from 'graphql-tag'
 
 // User queries
 export const listUsers = gql`
-  query ListUsers($limit: Int) {
-    listUsers(limit: $limit) {
+  query ListUsers {
+    listUsers {
       id
       name
       email
@@ -78,8 +78,8 @@ export const deleteUser = gql`
 
 // Post queries
 export const listPosts = gql`
-  query ListPosts($limit: Int) {
-    listPosts(limit: $limit) {
+  query ListPosts {
+    listPosts {
       id
       title
       content

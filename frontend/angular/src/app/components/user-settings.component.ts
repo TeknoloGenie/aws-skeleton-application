@@ -287,19 +287,19 @@ export class UserSettingsComponent implements OnInit {
             settings.forEach((setting: any) => {
               if (setting.key === 'theme') {
                 this.themeSettings = { ...this.themeSettings, ...setting.value };
-                this.settingIds.theme = setting.id;
+                this.settingIds['theme'] = setting.id;
               } else if (setting.key === 'notifications') {
                 this.notificationSettings = { ...this.notificationSettings, ...setting.value };
-                this.settingIds.notifications = setting.id;
+                this.settingIds['notifications'] = setting.id;
               } else if (setting.key === 'privacy') {
                 this.privacySettings = { ...this.privacySettings, ...setting.value };
-                this.settingIds.privacy = setting.id;
+                this.settingIds['privacy'] = setting.id;
               }
             });
           }
           this.loading = false;
         },
-        error: (err) => {
+        error: (err: any) => {
           this.error = err.message;
           this.loading = false;
         }
@@ -356,7 +356,11 @@ export class UserSettingsComponent implements OnInit {
           mutation: CREATE_SETTING,
           variables: { input: settingInput }
         }).toPromise();
-        this.settingIds[key] = result.data.createSetting.id;
+        
+        if (result?.data) {
+          const data = result.data as any;
+          this.settingIds[key] = data.createSetting?.id;
+        }
       }
 
       this.saveStatus = {

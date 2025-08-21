@@ -133,7 +133,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
       } else if (authState.authStatus === 'unauthenticated') {
         this.clearUserInfo();
       }
-    });
+    }) as any; // Type assertion to handle Amplify subscription type mismatch
   }
 
   ngOnDestroy() {
@@ -157,7 +157,8 @@ export class NavbarComponent implements OnInit, OnDestroy {
       // Check admin status
       const idToken = session.tokens.idToken;
       const groups = idToken?.payload['cognito:groups'] || [];
-      this.isAdmin = groups.includes('admins');
+      const groupsArray = Array.isArray(groups) ? groups : [];
+      this.isAdmin = groupsArray.includes('admins');
       
       // Try to get the best display name
       this.userName = user.username || '';

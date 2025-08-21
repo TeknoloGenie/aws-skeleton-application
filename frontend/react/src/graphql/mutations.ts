@@ -8,6 +8,9 @@ export const CREATE_USER = gql`
       name
       email
       bio
+      role
+      cognitoId
+      userId
       createdAt
       updatedAt
     }
@@ -15,23 +18,24 @@ export const CREATE_USER = gql`
 `;
 
 export const UPDATE_USER = gql`
-  mutation UpdateUser($id: ID!, $input: UpdateUserInput!) {
-    updateUser(id: $id, input: $input) {
+  mutation UpdateUser($input: UpdateUserInput!) {
+    updateUser(input: $input) {
       id
       name
       email
       bio
+      role
+      cognitoId
+      userId
       updatedAt
     }
   }
 `;
 
 export const DELETE_USER = gql`
-  mutation DeleteUser($id: ID!) {
-    deleteUser(id: $id) {
+  mutation DeleteUser($input: DeleteUserInput!) {
+    deleteUser(input: $input) {
       id
-      name
-      email
     }
   }
 `;
@@ -57,8 +61,8 @@ export const CREATE_POST = gql`
 `;
 
 export const UPDATE_POST = gql`
-  mutation UpdatePost($id: ID!, $input: UpdatePostInput!) {
-    updatePost(id: $id, input: $input) {
+  mutation UpdatePost($input: UpdatePostInput!) {
+    updatePost(input: $input) {
       id
       title
       content
@@ -74,14 +78,9 @@ export const UPDATE_POST = gql`
 `;
 
 export const DELETE_POST = gql`
-  mutation DeletePost($id: ID!) {
-    deletePost(id: $id) {
+  mutation DeletePost($input: DeletePostInput!) {
+    deletePost(input: $input) {
       id
-      title
-      user {
-        id
-        name
-      }
     }
   }
 `;
@@ -97,12 +96,17 @@ export interface CreateUserInput {
 }
 
 export interface UpdateUserInput {
+  id: string;
   name?: string;
   email?: string;
   bio?: string;
   role?: string;
   cognitoId?: string;
   // Note: createdAt, updatedAt are auto-managed
+}
+
+export interface DeleteUserInput {
+  id: string;
 }
 
 export interface CreatePostInput {
@@ -113,8 +117,13 @@ export interface CreatePostInput {
 }
 
 export interface UpdatePostInput {
+  id: string;
   title?: string;
   content?: string;
   published?: boolean;
   // Note: createdAt, updatedAt are auto-managed
+}
+
+export interface DeletePostInput {
+  id: string;
 }
