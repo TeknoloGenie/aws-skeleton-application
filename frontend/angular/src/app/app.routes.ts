@@ -48,7 +48,8 @@ const adminGuard = async () => {
     if (session.tokens?.accessToken) {
       const idToken = session.tokens.idToken;
       const groups = idToken?.payload['cognito:groups'] || [];
-      if (groups.includes('admins')) {
+      const groupsArray = Array.isArray(groups) ? groups : [];
+      if (groupsArray.includes('admins')) {
         return true;
       } else {
         console.log('User not in admin group, redirecting to dashboard');
