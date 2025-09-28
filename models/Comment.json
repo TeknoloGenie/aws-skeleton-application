@@ -1,16 +1,16 @@
 {
-  "name": "Post",
+  "name": "Comment",
   "properties": {
     "id": {
       "type": "ID",
       "required": true
     },
-    "title": {
+    "content": {
       "type": "String",
       "required": true
     },
-    "content": {
-      "type": "String",
+    "postId": {
+      "type": "ID",
       "required": true
     },
     "userId": {
@@ -18,18 +18,25 @@
       "required": true,
       "isOwner": true
     },
-    "published": {
-      "type": "Boolean",
-      "required": false,
-      "defaultValue": false
-    },
     "createdAt": {
       "type": "AWSDateTime",
-      "required": true
+      "required": false
     },
     "updatedAt": {
       "type": "AWSDateTime",
-      "required": true
+      "required": false
+    }
+  },
+  "relationships": {
+    "post": {
+      "type": "belongsTo",
+      "target": "Post",
+      "foreignKey": "postId"
+    },
+    "user": {
+      "type": "belongsTo",
+      "target": "User",
+      "foreignKey": "userId"
     }
   },
   "dataSource": {
@@ -41,7 +48,7 @@
     "rules": [
       {
         "allow": "create",
-        "groups": ["users", "admins"]
+        "groups": ["users"]
       },
       {
         "allow": "read",
@@ -54,15 +61,12 @@
       {
         "allow": "delete",
         "owner": true
+      },
+      {
+        "allow": "delete",
+        "groups": ["admins"]
       }
     ]
-  },
-  "relationships": {
-    "user": {
-      "type": "belongsTo",
-      "target": "User",
-      "foreignKey": "userId"
-    }
   },
   "enableSubscriptions": true
 }

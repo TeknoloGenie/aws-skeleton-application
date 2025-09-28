@@ -218,6 +218,105 @@ export const ON_CREATE_USER = gql`
   }
 `;
 
+// Comment Queries
+export const LIST_COMMENTS = gql`
+  query ListComments($postId: ID!) {
+    listComments(postId: $postId) {
+      id
+      content
+      postId
+      userId
+      createdAt
+      updatedAt
+      user {
+        id
+        name
+        email
+      }
+    }
+  }
+`;
+
+export const GET_COMMENT = gql`
+  query GetComment($id: ID!) {
+    getComment(id: $id) {
+      id
+      content
+      postId
+      userId
+      createdAt
+      updatedAt
+      user {
+        id
+        name
+        email
+      }
+    }
+  }
+`;
+
+// Comment Mutations
+export const CREATE_COMMENT = gql`
+  mutation CreateComment($input: CreateCommentInput!) {
+    createComment(input: $input) {
+      id
+      content
+      postId
+      userId
+      createdAt
+      updatedAt
+      user {
+        id
+        name
+        email
+      }
+    }
+  }
+`;
+
+export const UPDATE_COMMENT = gql`
+  mutation UpdateComment($input: UpdateCommentInput!) {
+    updateComment(input: $input) {
+      id
+      content
+      createdAt
+      updatedAt
+      user {
+        id
+        name
+        email
+      }
+    }
+  }
+`;
+
+export const DELETE_COMMENT = gql`
+  mutation DeleteComment($input: DeleteCommentInput!) {
+    deleteComment(input: $input) {
+      id
+    }
+  }
+`;
+
+// Comment Subscriptions
+export const ON_CREATE_COMMENT = gql`
+  subscription OnCreateComment($postId: ID!) {
+    onCreateComment(postId: $postId) {
+      id
+      content
+      postId
+      userId
+      createdAt
+      updatedAt
+      user {
+        id
+        name
+        email
+      }
+    }
+  }
+`;
+
 export const ON_JOB_COMPLETED = gql`
   subscription OnJobCompleted($requestId: ID!) {
     onJobCompleted(requestId: $requestId) {
