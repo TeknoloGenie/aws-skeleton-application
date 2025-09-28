@@ -1,25 +1,20 @@
-# Chat Rules - Conversation Management and Task Recognition
+# Chat Rules - Conversation Management and Workflow Classification
 
-**CONVERSATION INITIALIZATION**: Every conversation must begin with task recognition
-- If user provides specific task/request → Acknowledge task type and relevant rules
-- If user provides vague greeting ("how is your day?") → Ask "What are we working on today?"
-- Always establish context and applicable rule sets before proceeding
+**CONVERSATION INITIALIZATION**: Every conversation must begin with workflow classification
+- Ask: "What type of work are we doing today?"
+  - **Task** - Development work
+  - **QA Finding** - Bug report/issue
+  - **Discussion** - Information gathering
+- Execute appropriate workflow based on classification
+- Always run Discussion workflow before Task/QA Finding workflows
 
-**CONVERSATION SAVING**: Save after every user prompt response
-- Save current chat as timestamped .json file in conversations folder after each response
-- Create conversations folder if missing
-- No longer wait for versioning completion to save
-- Continuous conversation preservation for context and debugging
+**CONVERSATION SAVING**: When user says "Save conversation"
+- Save new conversation if none previously saved in current session
+- Use descriptive title that summarizes the conversation content
+- Save to conversations folder with conversation content
+- Display only "Conversation saved successfully"
 
-**TASK RECOGNITION EXAMPLES**:
-- Code development → Apply versioning-rules, code-requirement-rules, testing-rules
-- Infrastructure changes → Apply infrastructure-rules, security-rules
-- Documentation updates → Apply documentation-rules
-- Package management → Apply package-installation-rules
-- Rule modifications → Apply rule-update-rules
-- General questions → Ask for clarification on work focus
-
-**CONTEXT LOADING**: Removed automatic loading of previous conversations
-- Focus on current session context
-- User can reference previous work if needed
-- Reduces confusion from outdated context
+**WORKFLOW EXECUTION**: Follow conversation-workflow-rules.md strictly
+- Discussion → Review files and tests first
+- Task → Get task details, then create test plan
+- QA Finding → Get replication steps, then create test plan

@@ -1,44 +1,22 @@
-# Task Planning Rules - MANDATORY DISCUSSION AND ANALYSIS
+# Task Planning Rules - MANDATORY DISCUSSION AND TEST PLANNING
 
-**CRITICAL**: NEVER provide code directly without first discussing, outlining, and planning the task
+**CRITICAL**: NEVER provide code directly without following workflow
 
-**REQUIRED PROCESS** for all tasks (regardless of size):
+**REQUIRED PROCESS**:
 
-1. **Task Analysis**: Before writing any code
-   - Understand the full scope of the request
-   - Identify all components that will be affected
-   - Determine the complexity level (small/medium/large)
-   - List all files that need to be created or modified
+1. **Workflow Classification**: Determine Task/QA Finding/Discussion
+2. **Discussion Phase**: Review related files and tests (MANDATORY)
+3. **Task Information Gathering**: 
+   - Frontend or Backend?
+   - New Feature or Improvement?
+   - Task title and description
+   - Component/service files involved
+4. **Test Planning**: MUST provide test update/creation list BEFORE coding
+5. **Implementation**: Only after test plan approval
 
-2. **Version Classification**: Determine change type for proper versioning
-   - Analyze if this is a bug fix (patch), new feature (minor), or breaking change (major)
-   - If uncertain about classification, ask user for clarification
-   - Document the reasoning for the classification choice
-   - **Patch (0.0.1)**: Bug fixes, hotfixes, security patches
-   - **Minor (0.1.0)**: New features, improvements, enhancements
-   - **Major (1.0.0)**: Breaking changes, API changes, architecture changes
-
-3. **Related Feature Examination**: Check for connections to existing features
-   - Examine related models, components, and services
-   - Identify potential breaking changes
-   - Check for conflicts with existing functionality
-   - Review dependencies and relationships
-
-4. **Planning Discussion**: Present a comprehensive plan
-   - Outline the approach and implementation strategy
-   - Highlight any risks or concerns
-   - Propose alternatives if applicable
-   - Estimate effort and complexity
-
-5. **Wait for Approval**: Do NOT proceed with implementation until approved
-   - User may approve the plan as-is
-   - User may request modifications to the approach
-   - User may want to discuss alternatives
-   - User may decide to postpone or cancel
-
-**FORBIDDEN ACTIONS** before planning approval:
+**FORBIDDEN ACTIONS** before test plan approval:
 - Do NOT write any code files
-- Do NOT create components or services
+- Do NOT create components or services  
 - Do NOT modify existing files
 - Do NOT install packages (follow package-installation-rules.md)
 - Do NOT proceed with implementation
@@ -79,17 +57,6 @@ Should I proceed with this approach, or would you prefer to discuss alternatives
 
 User: [provides feedback/approval]
 Assistant: [implements only after approval]
-```
-
-**WHEN UNCERTAIN ABOUT VERSION CLASSIFICATION**:
-```
-Assistant: "I'm analyzing this task but need clarification on version classification:
-
-The task could be classified as either:
-- PATCH: If this fixes a missing functionality that should have been there
-- MINOR: If this is a new feature enhancement
-
-How would you classify this change for versioning purposes?"
 ```
 
 **APPLIES TO ALL TASKS**:
