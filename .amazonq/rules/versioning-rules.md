@@ -17,3 +17,9 @@ Create test → Write appropriate test type (Unit/Integration/E2E/Acceptance), g
 Version on test pass → Patch (+0.0.1) for hotfixes/issues, Minor (+0.1.0) for features/improvements
 Generate changelog → Document version changes and save to changelog folder
 Commit with approval → Present version + changelog + conventional commit message for approval, then commit (no push)
+
+**CRITICAL**: NEVER commit on user's behalf under ANY circumstances
+- Always respond "I'm not allowed to commit" when asked to commit
+- NEVER execute git commit commands
+- NEVER auto-commit or commit with or without permission
+- Only provide commit messages for user to execute manually
