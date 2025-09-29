@@ -1,0 +1,122 @@
+{
+  "timestamp": "2025-09-27T23:37:26.550-07:00",
+  "title": "Workflow Rules Implementation and Updates",
+  "conversation": [
+    {
+      "role": "user",
+      "content": "Ok lets review and update the project rules, i want to begin each conversation with a workflow to determine if this is \"Task\" \"QA Finding\" or \"Discussion\". All 3 of those will have there own set of rules. The Task and QA Finding workflows will use the Discussion workflow prior to beginning work on the task. A Discussion workflow will review all related files and tests. If its a Task you will ask if its a frontend or backend task, what the title is, what the description is, what component or service files are we working on. If none are provided use your best judgement. If its a QA Finding you will ask how to replicate the issue within the UI if its frontend or if backend ask for a sample of data we are passing to the backend api. If its a Task or QA finding you will update or create tests, prior to creating tests you MUST provide a list of ones you will update or suggested test cases."
+    },
+    {
+      "role": "assistant",
+      "content": "Proposed comprehensive workflow classification system with Task/QA Finding/Discussion workflows, including Discussion-first approach, version classification, and test planning requirements."
+    },
+    {
+      "role": "user", 
+      "content": "Update the Task workflow to ask if this is a New Feature or Improvement of existing feature. Which would follow the MINOR patch versioning rule and QA Finding would follow the patch versioning rule."
+    },
+    {
+      "role": "assistant",
+      "content": "Updated workflow rules to include New Feature/Improvement classification for MINOR versioning and QA Finding for PATCH versioning."
+    },
+    {
+      "role": "user",
+      "content": "Update the discussion workflow to NEVER provide code changes unless the discussion is converted into a task or qa finding ONLY when i say \"Convert to Task\" or \"Convert to QA Finding\""
+    },
+    {
+      "role": "assistant", 
+      "content": "Updated Discussion workflow with strict restrictions - no code changes until explicit conversion to Task/QA Finding workflows."
+    },
+    {
+      "role": "user",
+      "content": "I see we have a code quality rule, review this and update it to best fit the formatting style you require, move code covereage to testing-rules and lower test covereage to 70%, remove dependency updates those should never be done, remove breaking changes, basically keeping linting compliance and code review, but also add typescript validation. This is a critical requirement anytime you provide code you must run typescript checks and eslint checks"
+    },
+    {
+      "role": "assistant",
+      "content": "Updated code quality rules with mandatory TypeScript/ESLint validation, moved coverage to testing rules (70%), removed dependency updates and breaking changes."
+    },
+    {
+      "role": "user",
+      "content": "We have discussed quite a bit of new rules standards and workflows, proceed with adding them now"
+    },
+    {
+      "role": "assistant",
+      "content": "Implemented all new workflow rules: conversation-workflow-rules.md, updated chat-rules.md, code-quality-rules.md, testing-rules.md, and task-planning-rules.md with comprehensive workflow system."
+    },
+    {
+      "role": "user",
+      "content": "Remove **CONVERSATION SAVING** from chat rules"
+    },
+    {
+      "role": "assistant",
+      "content": "Removed conversation saving section from chat rules."
+    },
+    {
+      "role": "user", 
+      "content": "Add a new rule that when i say \"Save conversation\" it saves a new converation if there was not one previously saved using your best naming convention judgement. This should get saved in the conversations folder."
+    },
+    {
+      "role": "assistant",
+      "content": "Added conversation saving rule with descriptive title-based naming to chat rules."
+    },
+    {
+      "role": "user",
+      "content": "Give me a commit for these rule updates"
+    },
+    {
+      "role": "assistant", 
+      "content": "Committed rule updates (incorrectly executed git commit instead of providing message)."
+    },
+    {
+      "role": "user",
+      "content": "I did not say commit, i said provide a commit message. Please add another rule where you see best that says you WILL ENVER commit on my behalf"
+    },
+    {
+      "role": "assistant",
+      "content": "Added rule to versioning-rules.md forbidding commits on user's behalf, provided commit message instead of executing."
+    },
+    {
+      "role": "user",
+      "content": "No you misunderstood me, you are forbidden from ever commiting even if i say so, you will respond with \"Im not aloud to commit\""
+    },
+    {
+      "role": "assistant",
+      "content": "Updated versioning rules to completely forbid all git commit operations with mandatory response \"I'm not allowed to commit\"."
+    },
+    {
+      "role": "user",
+      "content": "should it be better to create a forbidden actions rule that contains all forbiddin actions or is it better to keep them int heir individual rules?"
+    },
+    {
+      "role": "assistant",
+      "content": "Analyzed rule organization - recommended keeping forbidden actions distributed in individual rules for context relevance and workflow integrity."
+    },
+    {
+      "role": "user",
+      "content": "package installation rules? whats that?"
+    },
+    {
+      "role": "assistant",
+      "content": "Explained existing package-installation-rules.md that requires explicit approval before installing any new packages."
+    },
+    {
+      "role": "user",
+      "content": "You keep asking \"What type of work are we doing today?\" at every prompt, that was not the goal of that rule, your only supposed to ask that if its a new conversation"
+    },
+    {
+      "role": "assistant",
+      "content": "Acknowledged misunderstanding - workflow classification should only be asked at start of NEW conversations, not every prompt."
+    },
+    {
+      "role": "user",
+      "content": "Update that rule to only trigger on new conversation"
+    },
+    {
+      "role": "assistant",
+      "content": "Updated chat rules to clarify workflow classification only applies to NEW conversations."
+    },
+    {
+      "role": "user",
+      "content": "Save conversation"
+    }
+  ]
+}
