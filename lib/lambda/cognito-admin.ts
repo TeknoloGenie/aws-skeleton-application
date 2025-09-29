@@ -3,12 +3,14 @@ import {
   CognitoIdentityProviderClient, 
   ListUsersCommand,
   AdminCreateUserCommand,
-  AdminSetUserPasswordCommand,
+  AdminGetUserCommand,
   MessageActionType
 } from '@aws-sdk/client-cognito-identity-provider';
 
 const cognitoClient = new CognitoIdentityProviderClient({
-  region: process.env.AWS_REGION
+  region: process.env.AWS_REGION || 'us-east-1',
+  maxAttempts: 3,
+  requestHandler: undefined // Use default request handler, not layer
 });
 
 export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
@@ -134,7 +136,13 @@ async function handleListUsers(userPoolId: string): Promise<APIGatewayProxyResul
 }
 
 async function handleCreateUser(userPoolId: string, requestBody: string | null): Promise<APIGatewayProxyResult> {
+  if (process.env.STAGE === 'development') {
+    console.log('DEBUG: handleCreateUser called with userPoolId:', userPoolId);
+    console.log('DEBUG: Raw request body:', requestBody);
+  }
+
   if (!requestBody) {
+    console.log('DEBUG: No request body provided');
     return {
       statusCode: 400,
       headers: {
@@ -152,7 +160,11 @@ async function handleCreateUser(userPoolId: string, requestBody: string | null):
   let userData;
   try {
     userData = JSON.parse(requestBody);
+    if (process.env.STAGE === 'development') {
+      console.log('DEBUG: Parsed user data:', JSON.stringify(userData, null, 2));
+    }
   } catch (error) {
+    console.log('DEBUG: JSON parse error:', error);
     return {
       statusCode: 400,
       headers: {
@@ -169,7 +181,18 @@ async function handleCreateUser(userPoolId: string, requestBody: string | null):
 
   const { email, givenName, familyName, temporaryPassword, sendEmail } = userData;
 
+  if (process.env.STAGE === 'development') {
+    console.log('DEBUG: Extracted fields:', {
+      email: email || 'MISSING',
+      givenName: givenName || 'MISSING',
+      familyName: familyName || 'MISSING',
+      temporaryPassword: temporaryPassword ? '[PROVIDED]' : 'MISSING',
+      sendEmail: sendEmail
+    });
+  }
+
   if (!email || !givenName || !familyName || !temporaryPassword) {
+    console.log('DEBUG: Missing required fields validation failed');
     return {
       statusCode: 400,
       headers: {
@@ -179,7 +202,13 @@ async function handleCreateUser(userPoolId: string, requestBody: string | null):
         'Access-Control-Allow-Methods': 'GET,POST,OPTIONS'
       },
       body: JSON.stringify({ 
-        error: 'Missing required fields: email, givenName, familyName, temporaryPassword'
+        error: 'Missing required fields: email, givenName, familyName, temporaryPassword',
+        received: {
+          email: !!email,
+          givenName: !!givenName,
+          familyName: !!familyName,
+          temporaryPassword: !!temporaryPassword
+        }
       })
     };
   }
@@ -187,10 +216,57 @@ async function handleCreateUser(userPoolId: string, requestBody: string | null):
   console.log('Creating user:', { email, givenName, familyName, sendEmail });
 
   try {
+    // Generate username from email prefix + random 4-digit number with collision handling
+    const emailPrefix = email.split('@')[0];
+    let username: string;
+    let attempts = 0;
+    const maxAttempts = 5;
+
+    // Try to generate a unique username
+    do {
+      const randomDigits = Math.floor(1000 + Math.random() * 9000); // Generates 1000-9999
+      username = `${emailPrefix}${randomDigits}`;
+      attempts++;
+
+      if (process.env.STAGE === 'development') {
+        console.log(`DEBUG: Attempt ${attempts} - Generated username:`, username, 'from email:', email);
+      }
+
+      // Check if username already exists
+      try {
+        await cognitoClient.send(new AdminGetUserCommand({
+          UserPoolId: userPoolId,
+          Username: username
+        }));
+        
+        // If we get here, user exists, try again
+        if (process.env.STAGE === 'development') {
+          console.log('DEBUG: Username', username, 'already exists, trying again...');
+        }
+        username = ''; // Reset to trigger another attempt
+      } catch (error: any) {
+        if (error.name === 'UserNotFoundException') {
+          // Perfect! Username doesn't exist, we can use it
+          if (process.env.STAGE === 'development') {
+            console.log('DEBUG: Username', username, 'is available');
+          }
+          break;
+        } else {
+          // Some other error occurred
+          console.error('DEBUG: Error checking username availability:', error);
+          throw error;
+        }
+      }
+    } while (!username && attempts < maxAttempts);
+
+    if (!username) {
+      throw new Error(`Failed to generate unique username after ${maxAttempts} attempts`);
+    }
+
     // Create the user
     const createCommand = new AdminCreateUserCommand({
       UserPoolId: userPoolId,
-      Username: email, // Use email as username
+      Username: username, // Use generated username instead of email
       UserAttributes: [
         { Name: 'email', Value: email },
         { Name: 'given_name', Value: givenName },
@@ -198,22 +274,31 @@ async function handleCreateUser(userPoolId: string, requestBody: string | null):
         { Name: 'email_verified', Value: 'true' }
       ],
       TemporaryPassword: temporaryPassword,
-      MessageAction: sendEmail ? MessageActionType.RESEND : MessageActionType.SUPPRESS
+      // Fix: Use correct MessageAction for new user creation
+      MessageAction: sendEmail ? undefined : MessageActionType.SUPPRESS
     });
+
+    if (process.env.STAGE === 'development') {
+      console.log('DEBUG: AdminCreateUserCommand parameters:', JSON.stringify({
+        UserPoolId: userPoolId,
+        Username: username,
+        UserAttributes: createCommand.input.UserAttributes,
+        TemporaryPassword: '[REDACTED]',
+        MessageAction: createCommand.input.MessageAction
+      }, null, 2));
+    }
 
     const createResponse = await cognitoClient.send(createCommand);
     console.log('User created successfully:', JSON.stringify(createResponse, null, 2));
 
-    // Set permanent password if provided
-    const setPasswordCommand = new AdminSetUserPasswordCommand({
-      UserPoolId: userPoolId,
-      Username: email,
-      Password: temporaryPassword,
-      Permanent: true
-    });
+    // Note: We don't set permanent password here because:
+    // 1. It can cause "User not found" errors due to timing
+    // 2. Cognito handles temporary passwords automatically
+    // 3. Users can set their own permanent password on first login
 
-    await cognitoClient.send(setPasswordCommand);
-    console.log('Password set as permanent');
+    if (process.env.STAGE === 'development') {
+      console.log('DEBUG: User creation completed, skipping permanent password setting');
+    }
 
     return {
       statusCode: 201,
@@ -226,15 +311,23 @@ async function handleCreateUser(userPoolId: string, requestBody: string | null):
       body: JSON.stringify({
         message: 'User created successfully',
         user: {
-          username: createResponse.User?.Username,
+          username: username, // Return the generated username
           email: email,
           status: createResponse.User?.UserStatus
-        }
+        },
+        note: 'User will need to set permanent password on first login'
       })
     };
 
   } catch (error) {
     console.error('Error creating user:', error);
+    
+    if (process.env.STAGE === 'development') {
+      console.log('DEBUG: Full error object:', JSON.stringify(error, null, 2));
+      console.log('DEBUG: Error name:', error instanceof Error ? error.name : 'Unknown');
+      console.log('DEBUG: Error message:', error instanceof Error ? error.message : 'Unknown');
+      console.log('DEBUG: Error stack:', error instanceof Error ? error.stack : 'Unknown');
+    }
     
     let errorMessage = 'Failed to create user';
     let statusCode = 500;
@@ -251,7 +344,13 @@ async function handleCreateUser(userPoolId: string, requestBody: string | null):
         errorMessage = 'Password does not meet requirements';
       } else if (error.name === 'InvalidParameterException') {
         statusCode = 400;
-        errorMessage = 'Invalid parameters provided';
+        errorMessage = `Invalid parameters provided: ${error.message}`;
+      } else if (error.name === 'UserNotFoundException') {
+        statusCode = 404;
+        errorMessage = 'User not found';
+      } else if (error.name === 'NotAuthorizedException') {
+        statusCode = 403;
+        errorMessage = 'Not authorized to perform this action';
       }
     }
     
@@ -264,7 +363,11 @@ async function handleCreateUser(userPoolId: string, requestBody: string | null):
         'Access-Control-Allow-Methods': 'GET,POST,OPTIONS'
       },
       body: JSON.stringify({ 
-        error: errorMessage
+        error: errorMessage,
+        debug: process.env.STAGE === 'development' ? {
+          errorName: error instanceof Error ? error.name : 'Unknown',
+          originalMessage: error instanceof Error ? error.message : 'Unknown'
+        } : undefined
       })
     };
   }

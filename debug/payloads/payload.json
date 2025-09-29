@@ -1,0 +1,11 @@
+{
+  "httpMethod": "POST",
+  "body": "{\"email\":\"nodedad@nodegeeks.org\",\"givenName\":\"Aaron\",\"familyName\":\"Russell\",\"temporaryPassword\":\"Password123!\",\"sendEmail\":true}",
+  "requestContext": {
+    "authorizer": {
+      "claims": {
+        "cognito:groups": ["admins"]
+      }
+    }
+  }
+}

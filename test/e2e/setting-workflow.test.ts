@@ -73,7 +73,7 @@ describe('Setting Model E2E Workflow Tests', () => {
           expect(indexes.byTypeAndKey.partitionKey).toBe('type');
         }
         
-        if (pattern.hasOwnProperty('isActive')) {
+        if (Object.prototype.hasOwnProperty.call(pattern, 'isActive')) {
           expect(indexes.byActiveSettings).toBeDefined();
           expect(indexes.byActiveSettings.partitionKey).toBe('isActive');
         }

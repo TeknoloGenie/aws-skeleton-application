@@ -378,7 +378,7 @@ async function main() {
   const password = process.argv[3] || process.env.TEST_PASSWORD;
   
   if (!email || !password) {
-    console.log('Usage: node test-auth-debug.js <email> <password>');
+    console.log('Usage: node debug/auth-debug.js <email> <password>');
     console.log('Or set TEST_EMAIL and TEST_PASSWORD environment variables');
     process.exit(1);
   }

@@ -1,0 +1,11 @@
+{
+  "httpMethod": "POST",
+  "body": "{\"email\":\"test-unique-email@example.com\",\"givenName\":\"Test\",\"familyName\":\"User\",\"temporaryPassword\":\"Password123!\",\"sendEmail\":false}",
+  "requestContext": {
+    "authorizer": {
+      "claims": {
+        "cognito:groups": ["admins"]
+      }
+    }
+  }
+}

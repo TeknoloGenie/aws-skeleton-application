@@ -52,12 +52,12 @@ describe('Setting Model Integration Tests', () => {
         expect(validGraphQLTypes).toContain(propDef.type);
         
         // Validate required field is boolean if present
-        if (propDef.hasOwnProperty('required')) {
+        if (Object.prototype.hasOwnProperty.call(propDef, 'required')) {
           expect(typeof propDef.required).toBe('boolean');
         }
         
         // Validate isOwner field is boolean if present
-        if (propDef.hasOwnProperty('isOwner')) {
+        if (Object.prototype.hasOwnProperty.call(propDef, 'isOwner')) {
           expect(typeof propDef.isOwner).toBe('boolean');
         }
       });
@@ -79,8 +79,8 @@ describe('Setting Model Integration Tests', () => {
         expect(['create', 'read', 'update', 'delete']).toContain(rule.allow);
         
         // Validate rule has either groups or owner property
-        const hasGroups = rule.hasOwnProperty('groups');
-        const hasOwner = rule.hasOwnProperty('owner');
+        const hasGroups = Object.prototype.hasOwnProperty.call(rule, 'groups');
+        const hasOwner = Object.prototype.hasOwnProperty.call(rule, 'owner');
         expect(hasGroups || hasOwner).toBe(true);
         
         if (hasGroups) {
@@ -199,7 +199,7 @@ describe('Setting Model Integration Tests', () => {
         
         // Validate property types match model definition
         Object.entries(properties).forEach(([propName, propDef]: [string, any]) => {
-          if (item.hasOwnProperty(propName)) {
+          if (Object.prototype.hasOwnProperty.call(item, propName)) {
             const value = item[propName];
             
             switch (propDef.type) {
@@ -246,7 +246,7 @@ describe('Setting Model Integration Tests', () => {
       expect(entityIds.length).toBeGreaterThanOrEqual(2);
       
       // Validate both active and inactive settings if isActive field exists
-      const activeSettings = seedData.filter(item => item.hasOwnProperty('isActive'));
+      const activeSettings = seedData.filter(item => Object.prototype.hasOwnProperty.call(item, 'isActive'));
       if (activeSettings.length > 0) {
         const activeValues = [...new Set(activeSettings.map(item => item.isActive))];
         // Should have at least some active settings

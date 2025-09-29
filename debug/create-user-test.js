@@ -120,8 +120,8 @@ async function createUserRecord(idToken) {
 const idToken = process.argv[2];
 
 if (!idToken) {
-  console.log('Usage: node create-user-test.js <id-token>');
-  console.log('Run the simple-auth-test.js first to get the ID token');
+  console.log('Usage: node debug/create-user-test.js <id-token>');
+  console.log('Run the debug/simple-auth-test.js first to get the ID token');
   process.exit(1);
 }
 

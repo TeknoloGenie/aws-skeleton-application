@@ -328,7 +328,7 @@ async function main() {
   const password = process.argv[3] || process.env.TEST_PASSWORD;
   
   if (!email || !password) {
-    console.log('Usage: node simple-auth-test.js <email> <password>');
+    console.log('Usage: node debug/simple-auth-test.js <email> <password>');
     console.log('Or set TEST_EMAIL and TEST_PASSWORD environment variables');
     process.exit(1);
   }
