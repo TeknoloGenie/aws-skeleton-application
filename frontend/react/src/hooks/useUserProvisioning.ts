@@ -19,7 +19,7 @@ interface UserProvisioningResult {
   isProvisioned: boolean;
   isLoading: boolean;
   error: string | null;
-  userRecord: any | null;
+  userRecord: { id: string; email?: string; name?: string; cognitoId?: string } | null;
 }
 
 const GET_USER_BY_COGNITO_ID = gql`
@@ -56,7 +56,7 @@ export function useUserProvisioning(cognitoUser: CognitoUser): UserProvisioningR
   const [isProvisioned, setIsProvisioned] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [userRecord, setUserRecord] = useState<any | null>(null);
+  const [userRecord, setUserRecord] = useState<{ id: string; email?: string; name?: string; cognitoId?: string } | null>(null);
 
   useEffect(() => {
     if (!cognitoUser?.userId) {
@@ -139,13 +139,14 @@ export function useUserProvisioning(cognitoUser: CognitoUser): UserProvisioningR
           throw new Error('Failed to create user record');
         }
 
-      } catch (err: any) {
-        console.error('User provisioning error:', err);
-        setError(err.message || 'Failed to provision user');
+      } catch (err: unknown) {
+        const error = err as Error;
+        console.error('User provisioning error:', error);
+        setError(error.message || 'Failed to provision user');
         
         // If it's an authorization error, the user might still be able to use the app
         // with just Cognito groups, so don't block them
-        if (err.message?.includes('Not Authorized')) {
+        if (error.message?.includes('Not Authorized')) {
           setError('User auto-provisioning failed due to permissions, but you can still use the app');
         }
       } finally {
@@ -154,7 +155,14 @@ export function useUserProvisioning(cognitoUser: CognitoUser): UserProvisioningR
     };
 
     provisionUser();
-  }, [cognitoUser?.userId]);
+  }, [
+    cognitoUser?.userId,
+    cognitoUser?.attributes?.email,
+    cognitoUser?.attributes?.given_name,
+    cognitoUser?.attributes?.family_name,
+    cognitoUser?.signInDetails?.loginId,
+    cognitoUser?.username
+  ]);
 
   return {
     isProvisioned,

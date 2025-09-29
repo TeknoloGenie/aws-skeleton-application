@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { useAnalytics } from '../../services/analytics';
-import { apolloClient } from '../../graphql/client';
 import { gql } from '@apollo/client';
+import React, { useCallback, useEffect, useState } from 'react';
+import { apolloClient } from '../../graphql/client';
+import { useAnalytics } from '../../services/analytics';
 
 interface Settings {
   log_retention_days: number;
@@ -15,6 +15,29 @@ interface Settings {
   admin_dashboard_refresh: number;
   export_max_records: number;
 }
+
+const SYSTEM_SETTINGS_QUERY = gql`
+  query GetSystemSettings {
+    listSettings(filter: { type: { eq: "SYSTEM" }, entityId: { eq: "GLOBAL" } }) {
+      id
+      key
+      value
+      isActive
+      updatedAt
+    }
+  }
+`;
+
+const UPDATE_SETTING_MUTATION = gql`
+  mutation UpdateSetting($input: UpdateSettingInput!) {
+    updateSetting(input: $input) {
+      id
+      key
+      value
+      updatedAt
+    }
+  }
+`;
 
 const AppConfiguration: React.FC = () => {
   const { trackAction, trackError } = useAnalytics('app-configuration');
@@ -36,99 +59,34 @@ const AppConfiguration: React.FC = () => {
   const [changedSettings, setChangedSettings] = useState<string[]>([]);
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
 
-  const SYSTEM_SETTINGS_QUERY = gql`
-    query GetSystemSettings {
-      listSettings(filter: { type: { eq: "SYSTEM" }, entityId: { eq: "GLOBAL" } }) {
-        id
-        key
-        value
-        isActive
-        updatedAt
-      }
-    }
-  `;
-
-  const UPDATE_SETTING_MUTATION = gql`
-    mutation UpdateSetting($input: UpdateSettingInput!) {
-      updateSetting(input: $input) {
-        id
-        key
-        value
-        updatedAt
-      }
-    }
-  `;
-
   const hasChanges = changedSettings.length > 0;
+
+  const loadSettings = useCallback(async () => {
+    try {
+      const observable = apolloClient.watchQuery({
+        query: SYSTEM_SETTINGS_QUERY,
+        variables: { type: 'system' },
+        fetchPolicy: 'cache-and-network',
+        errorPolicy: "ignore",
+      });
+      observable.subscribe({
+        next(result) {
+          console.log("Result:", result.data);
+          if (result.data?.listSettings?.items) {
+            setSettings(result.data.listSettings.items);
+          }
+        },
+      });
+    } catch (error) {
+      console.error('Failed to load settings:', error);
+      trackError('settings-load-failed', { error: (error as Error).message });
+    }
+  }, [trackError]);
 
   useEffect(() => {
     loadSettings();
     trackAction('configuration-loaded');
-  }, []);
-
-  const loadSettings = async () => {
-    try {
-      const result = await apolloClient.query({
-        query: SYSTEM_SETTINGS_QUERY,
-        fetchPolicy: 'network-only'
-      });
-
-      const systemSettings = result.data.listSettings || [];
-      const newSettings = { ...settings };
-      
-      systemSettings.forEach((setting: any) => {
-        if (!setting.isActive) return;
-        
-        const key = setting.key;
-        const value = setting.value;
-        
-        switch (key) {
-          case 'log_retention_days':
-            newSettings.log_retention_days = value.days || 90;
-            break;
-          case 'batch_log_interval':
-            newSettings.batch_log_interval = value.seconds || 5;
-            break;
-          case 'batch_log_size':
-            newSettings.batch_log_size = value.count || 50;
-            break;
-          case 'enable_error_tracking':
-            newSettings.enable_error_tracking = value.enabled !== false;
-            break;
-          case 'session_timeout_minutes':
-            newSettings.session_timeout_minutes = value.minutes || 60;
-            break;
-          case 'max_login_attempts':
-            newSettings.max_login_attempts = value.attempts || 5;
-            break;
-          case 'enable_user_impersonation':
-            newSettings.enable_user_impersonation = value.enabled !== false;
-            break;
-          case 'timezone_detection':
-            newSettings.timezone_detection = value.enabled !== false;
-            break;
-          case 'admin_dashboard_refresh':
-            newSettings.admin_dashboard_refresh = value.seconds || 30;
-            break;
-          case 'export_max_records':
-            newSettings.export_max_records = value.count || 10000;
-            break;
-        }
-        
-        if (setting.updatedAt && (!lastUpdated || setting.updatedAt > lastUpdated)) {
-          setLastUpdated(setting.updatedAt);
-        }
-      });
-
-      setSettings(newSettings);
-      setOriginalSettings({ ...newSettings });
-      setChangedSettings([]);
-
-      trackAction('settings-loaded', { count: systemSettings.length });
-    } catch (error) {
-      trackError('failed-to-load-settings', { error: error.message });
-    }
-  };
+  }, [loadSettings, trackAction]);
 
   const markChanged = (key: string) => {
     if (!changedSettings.includes(key)) {
@@ -137,7 +95,7 @@ const AppConfiguration: React.FC = () => {
     trackAction('setting-changed', { key });
   };
 
-  const handleSettingChange = (key: keyof Settings, value: any) => {
+  const handleSettingChange = (key: keyof Settings, value: string | number | boolean) => {
     setSettings({ ...settings, [key]: value });
     markChanged(key);
   };
@@ -217,7 +175,7 @@ const AppConfiguration: React.FC = () => {
 
       alert('Settings saved successfully!');
     } catch (error) {
-      trackError('failed-to-save-settings', { error: error.message });
+      trackError('failed-to-save-settings', { error: (error as Error).message });
       alert('Failed to save settings. Please try again.');
     }
   };
@@ -260,6 +218,7 @@ const AppConfiguration: React.FC = () => {
                 onChange={(e) => handleSettingChange('log_retention_days', Number(e.target.value))}
                 min="1" 
                 max="365"
+                aria-label="Log retention in days"
                 className="form-input"
               />
               <small>How long to keep analytics logs (1-365 days)</small>
@@ -273,6 +232,7 @@ const AppConfiguration: React.FC = () => {
                 onChange={(e) => handleSettingChange('batch_log_interval', Number(e.target.value))}
                 min="1" 
                 max="60"
+                aria-label="Batch log interval in seconds"
                 className="form-input"
               />
               <small>How often to process log batches (1-60 seconds)</small>
@@ -286,6 +246,7 @@ const AppConfiguration: React.FC = () => {
                 onChange={(e) => handleSettingChange('batch_log_size', Number(e.target.value))}
                 min="10" 
                 max="100"
+                aria-label="Batch log size"
                 className="form-input"
               />
               <small>Maximum events per batch (10-100)</small>
@@ -297,6 +258,7 @@ const AppConfiguration: React.FC = () => {
                 type="checkbox" 
                 checked={settings.enable_error_tracking}
                 onChange={(e) => handleSettingChange('enable_error_tracking', e.target.checked)}
+                aria-label="Enable error tracking"
                 className="form-checkbox"
               />
               <small>Automatically track and log errors</small>
@@ -315,6 +277,7 @@ const AppConfiguration: React.FC = () => {
                 onChange={(e) => handleSettingChange('session_timeout_minutes', Number(e.target.value))}
                 min="5" 
                 max="480"
+                aria-label="Session timeout"
                 className="form-input"
               />
               <small>User session timeout (5-480 minutes)</small>
@@ -328,6 +291,7 @@ const AppConfiguration: React.FC = () => {
                 onChange={(e) => handleSettingChange('max_login_attempts', Number(e.target.value))}
                 min="3" 
                 max="10"
+                aria-label="Max login attempts"
                 className="form-input"
               />
               <small>Failed login attempts before lockout (3-10)</small>
@@ -339,6 +303,7 @@ const AppConfiguration: React.FC = () => {
                 type="checkbox" 
                 checked={settings.enable_user_impersonation}
                 onChange={(e) => handleSettingChange('enable_user_impersonation', e.target.checked)}
+                aria-label="Enable user impersonation"
                 className="form-checkbox"
               />
               <small>Allow admin user impersonation</small>
@@ -355,6 +320,7 @@ const AppConfiguration: React.FC = () => {
                 type="checkbox" 
                 checked={settings.timezone_detection}
                 onChange={(e) => handleSettingChange('timezone_detection', e.target.checked)}
+                aria-label="Enable timezone detection"
                 className="form-checkbox"
               />
               <small>Auto-detect user timezone for datetime display</small>
@@ -368,6 +334,7 @@ const AppConfiguration: React.FC = () => {
                 onChange={(e) => handleSettingChange('admin_dashboard_refresh', Number(e.target.value))}
                 min="10" 
                 max="300"
+                aria-label="Admin dashboard refresh interval"
                 className="form-input"
               />
               <small>Dashboard refresh interval (10-300 seconds)</small>
@@ -387,6 +354,7 @@ const AppConfiguration: React.FC = () => {
                 min="1000" 
                 max="100000"
                 step="1000"
+                aria-label="Export max records"
                 className="form-input"
               />
               <small>Maximum records for CSV/JSON export (1K-100K)</small>

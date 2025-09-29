@@ -7,7 +7,7 @@ interface AnalyticsEvent {
   action: string;
   component: string;
   level: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   timestamp: string;
 }
 
@@ -18,6 +18,7 @@ class AnalyticsService {
   private batchSize = 50;
   private batchInterval = 5000; // 5 seconds
   private isProcessing = false;
+  private registeredComponents = new Set<string>();
   private isInitialized = false;
   private initializationPromise: Promise<void> | null = null;
 
@@ -85,7 +86,7 @@ class AnalyticsService {
       if (result.data && result.data.listSettings) {
         const settings = result.data.listSettings || [];
         
-        settings.forEach((setting: any) => {
+        settings.forEach((setting: { isActive: boolean; key: string; value: string }) => {
           if (!setting.isActive) return;
           
           switch (setting.key) {
@@ -125,7 +126,7 @@ class AnalyticsService {
   /**
    * Track an analytics event
    */
-  async track(action: string, component: string, level: 'info' | 'warn' | 'error' = 'info', metadata?: Record<string, any>) {
+  async track(action: string, component: string, level: 'info' | 'warn' | 'error' = 'info', metadata?: Record<string, unknown>) {
     if (!this.currentUserId) {
       if (process.env.NODE_ENV === 'development') {
         console.warn('Analytics: No user ID set, skipping event');
@@ -154,23 +155,33 @@ class AnalyticsService {
   }
 
   /**
+   * Register component for analytics tracking
+   */
+  registerComponent(componentName: string) {
+    if (!this.registeredComponents.has(componentName)) {
+      this.registeredComponents.add(componentName);
+      this.trackView(componentName, { registered: true });
+    }
+  }
+
+  /**
    * Track component view
    */
-  async trackView(component: string, metadata?: Record<string, any>) {
+  async trackView(component: string, metadata?: Record<string, unknown>) {
     await this.track('view', component, 'info', metadata);
   }
 
   /**
    * Track user action
    */
-  async trackAction(action: string, component: string, metadata?: Record<string, any>) {
+  async trackAction(action: string, component: string, metadata?: Record<string, unknown>) {
     await this.track(action, component, 'info', metadata);
   }
 
   /**
    * Track error
    */
-  async trackError(error: string, component: string, metadata?: Record<string, any>) {
+  async trackError(error: string, component: string, metadata?: Record<string, unknown>) {
     await this.track(error, component, 'error', {
       ...metadata,
       errorMessage: error,
@@ -294,11 +305,11 @@ export function useAnalytics(componentName: string) {
     };
   }, [componentName]);
 
-  const trackAction = (action: string, metadata?: Record<string, any>) => {
+  const trackAction = (action: string, metadata?: Record<string, unknown>) => {
     analytics.trackAction(action, componentName, metadata);
   };
 
-  const trackError = (error: string, metadata?: Record<string, any>) => {
+  const trackError = (error: string, metadata?: Record<string, unknown>) => {
     analytics.trackError(error, componentName, metadata);
   };
 

@@ -12,7 +12,9 @@ import Users from './components/Users';
 import apolloClient from './graphql/client';
 import { useUserProvisioning } from './hooks/useUserProvisioning';
 import { analytics } from './services/analytics';
+import type { User as AppUser, CognitoUser } from './types/auth';
 import AdminDashboard from './views/admin/AdminDashboard';
+import PostDetail from './views/PostDetail';
 
 // Configure Amplify
 Amplify.configure(awsExports);
@@ -68,7 +70,7 @@ interface User {
 }
 
 // Sidebar Navigation Component
-const Sidebar: React.FC<{ user: User; signOut: () => void; userRecord?: any }> = ({ user, signOut, userRecord }) => {
+const Sidebar: React.FC<{ user: User; signOut: () => void; userRecord?: { name?: string; email?: string, role?: string } }> = ({ user, signOut, userRecord }) => {
   const location = useLocation();
   
   const getUserInitials = (user: User): string => {
@@ -188,8 +190,8 @@ const LoadingScreen: React.FC<{ message: string }> = ({ message }) => (
 );
 
 // Main App Content Component
-const AppContent: React.FC<{ user: User; signOut: () => void }> = ({ user, signOut }) => {
-  const { isProvisioned, isLoading, error, userRecord } = useUserProvisioning(user);
+const AppContent: React.FC<{ user: AppUser; signOut: () => void }> = ({ user, signOut }) => {
+  const { isProvisioned, isLoading, error, userRecord } = useUserProvisioning(user as CognitoUser);
 
   useEffect(() => {
     // Initialize analytics with user ID when user is authenticated
@@ -216,7 +218,7 @@ const AppContent: React.FC<{ user: User; signOut: () => void }> = ({ user, signO
   return (
     <Router>
       <div className="flex h-screen bg-gray-50">
-        <Sidebar user={user} signOut={signOut} userRecord={userRecord} />
+        <Sidebar user={user} signOut={signOut} userRecord={userRecord || undefined} />
         
         {/* Main Content */}
         <div className="flex-1 ml-64">
@@ -243,6 +245,7 @@ const AppContent: React.FC<{ user: User; signOut: () => void }> = ({ user, signO
               <Route path="/" element={<Navigate to="/dashboard" replace />} />
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/posts" element={<Posts />} />
+              <Route path="/posts/:id" element={<PostDetail />} />
               <Route path="/users" element={<Users />} />
               <Route path="/admin" element={<AdminDashboard />} />
             </Routes>
@@ -259,7 +262,7 @@ const App: React.FC = () => {
       <ApolloProvider client={apolloClient}>
         <Authenticator formFields={formFields}>
           {({ signOut, user }) => (
-            <AppContent user={user} signOut={signOut!} />
+            <AppContent user={user as AppUser} signOut={signOut!} />
           )}
         </Authenticator>
       </ApolloProvider>

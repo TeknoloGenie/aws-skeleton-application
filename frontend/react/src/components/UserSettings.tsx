@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { useQuery, useMutation } from '@apollo/client';
+import { useMutation, useQuery } from '@apollo/client';
 import { getCurrentUser } from 'aws-amplify/auth';
-import { GET_USER_SETTINGS, CREATE_SETTING, UPDATE_SETTING } from '../graphql/settings';
+import React, { useEffect, useState } from 'react';
+import { CREATE_SETTING, GET_USER_SETTINGS, UPDATE_SETTING } from '../graphql/settings';
 
 interface ThemeSettings {
   theme: string;
@@ -32,7 +32,7 @@ const UserSettings: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const [saveStatus, setSaveStatus] = useState<SaveStatus | null>(null);
-  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [currentUser, setCurrentUser] = useState<{ id: string; userId?: string; email?: string; name?: string } | null>(null);
 
   // Settings state
   const [themeSettings, setThemeSettings] = useState<ThemeSettings>({
@@ -67,14 +67,14 @@ const UserSettings: React.FC = () => {
   const [updateSetting] = useMutation(UPDATE_SETTING);
 
   // Load user settings
-  const { data: settingsData, refetch } = useQuery(GET_USER_SETTINGS, {
+  useQuery(GET_USER_SETTINGS, {
     variables: { entityId: currentUser?.userId, type: 'user' },
     skip: !currentUser?.userId,
     onCompleted: (data) => {
       if (data?.listSettings?.items) {
         const settings = data.listSettings.items;
         
-        settings.forEach((setting: any) => {
+        settings.forEach((setting: { id: string; key: string; value: Record<string, unknown> }) => {
           if (setting.key === 'theme') {
             setThemeSettings({ ...themeSettings, ...setting.value });
             setSettingIds(prev => ({ ...prev, theme: setting.id }));
@@ -100,7 +100,7 @@ const UserSettings: React.FC = () => {
     const loadUser = async () => {
       try {
         const user = await getCurrentUser();
-        setCurrentUser(user);
+        setCurrentUser(user as unknown as { id: string; userId?: string; email?: string; name?: string });
       } catch (err) {
         setError(err as Error);
         setLoading(false);
@@ -110,7 +110,7 @@ const UserSettings: React.FC = () => {
   }, []);
 
   // Generic save setting function
-  const saveSetting = async (key: string, value: any, successMessage: string) => {
+  const saveSetting = async (key: string, value: Record<string, unknown>, successMessage: string) => {
     try {
       setSaveStatus(null);
 
@@ -118,7 +118,7 @@ const UserSettings: React.FC = () => {
         type: 'user',
         key,
         value,
-        entityId: currentUser.userId,
+        entityId: currentUser?.userId || currentUser?.id,
         description: `User ${key} preferences`,
         isActive: true
       };
@@ -160,15 +160,15 @@ const UserSettings: React.FC = () => {
 
   // Update handlers
   const updateThemeSetting = () => {
-    saveSetting('theme', themeSettings, 'Theme preferences updated');
+    saveSetting('theme', themeSettings as unknown as Record<string, unknown>, 'Theme preferences updated');
   };
 
   const updateNotificationSetting = () => {
-    saveSetting('notifications', notificationSettings, 'Notification preferences updated');
+    saveSetting('notifications', notificationSettings as unknown as Record<string, unknown>, 'Notification preferences updated');
   };
 
   const updatePrivacySetting = () => {
-    saveSetting('privacy', privacySettings, 'Privacy settings updated');
+    saveSetting('privacy', privacySettings as unknown as Record<string, unknown>, 'Privacy settings updated');
   };
 
   if (loading) {
@@ -226,6 +226,7 @@ const UserSettings: React.FC = () => {
                     setThemeSettings({ ...themeSettings, primaryColor: e.target.value });
                     setTimeout(updateThemeSetting, 100);
                   }}
+                  aria-label="Primary color"
                   className="block w-full h-10 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                 />
               </div>
@@ -276,6 +277,7 @@ const UserSettings: React.FC = () => {
                     setNotificationSettings({ ...notificationSettings, email: e.target.checked });
                     setTimeout(updateNotificationSetting, 100);
                   }}
+                  aria-label="Email notifications"
                   className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                 />
               </div>
@@ -291,6 +293,7 @@ const UserSettings: React.FC = () => {
                     setNotificationSettings({ ...notificationSettings, push: e.target.checked });
                     setTimeout(updateNotificationSetting, 100);
                   }}
+                  aria-label="Push notifications"
                   className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                 />
               </div>
@@ -306,6 +309,7 @@ const UserSettings: React.FC = () => {
                     setNotificationSettings({ ...notificationSettings, sms: e.target.checked });
                     setTimeout(updateNotificationSetting, 100);
                   }}
+                  aria-label="SMS notifications"
                   className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                 />
               </div>
@@ -359,6 +363,7 @@ const UserSettings: React.FC = () => {
                     setPrivacySettings({ ...privacySettings, showEmail: e.target.checked });
                     setTimeout(updatePrivacySetting, 100);
                   }}
+                  aria-label="Show email"
                   className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                 />
               </div>
@@ -374,6 +379,7 @@ const UserSettings: React.FC = () => {
                     setPrivacySettings({ ...privacySettings, allowMessages: e.target.checked });
                     setTimeout(updatePrivacySetting, 100);
                   }}
+                  aria-label="Allow messages"
                   className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                 />
               </div>

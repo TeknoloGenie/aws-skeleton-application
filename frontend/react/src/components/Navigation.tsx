@@ -51,7 +51,7 @@ const Navigation: React.FC<NavigationProps> = ({ user, signOut }) => {
 
             <div className="flex items-center space-x-3 ml-6 pl-6 border-l border-blue-500">
               <span className="text-sm">
-                Welcome, {user?.attributes?.email || user?.username}
+                Welcome, {user?.username}
               </span>
               <button
                 onClick={signOut}

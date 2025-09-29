@@ -1,14 +1,14 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { useAnalytics } from '../../services/analytics';
-import { apolloClient } from '../../graphql/client';
 import { gql } from '@apollo/client';
+import React, { useEffect, useMemo, useState } from 'react';
+import { apolloClient } from '../../graphql/client';
+import { useAnalytics } from '../../services/analytics';
 
 const DataManagement: React.FC = () => {
   const { trackAction, trackError } = useAnalytics('data-management');
   
-  const availableModels = ['User', 'Post', 'Setting', 'Log'];
+  const availableModels = ['User', 'Post', 'Comment', 'Setting', 'Log'];
   const [selectedModel, setSelectedModel] = useState('');
-  const [modelData, setModelData] = useState<any[]>([]);
+  const [modelData, setModelData] = useState<Record<string, unknown>[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedRecords, setSelectedRecords] = useState<string[]>([]);
   const [sortField, setSortField] = useState('createdAt');
@@ -16,27 +16,12 @@ const DataManagement: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
   const [exportFormat, setExportFormat] = useState<'CSV' | 'JSON'>('CSV');
-  
-  // Modals
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [formData, setFormData] = useState<any>({});
-  const [editingRecord, setEditingRecord] = useState<any>(null);
 
   const modelFields = useMemo(() => {
     if (modelData.length === 0) return [];
     return Object.keys(modelData[0]).filter(key => key !== '__typename');
   }, [modelData]);
 
-  const editableFields = useMemo(() => {
-    return modelFields.filter(field => field !== 'id' && !field.includes('_local'));
-  }, [modelFields]);
-
-  const requiredFields = useMemo(() => {
-    return ['name', 'email', 'title', 'key', 'type'].filter(field => 
-      editableFields.includes(field)
-    );
-  }, [editableFields]);
 
   const filteredRecords = useMemo(() => {
     let filtered = modelData;
@@ -52,8 +37,8 @@ const DataManagement: React.FC = () => {
 
     // Sort
     filtered.sort((a, b) => {
-      const aVal = a[sortField];
-      const bVal = b[sortField];
+      const aVal = a[sortField] as string | number;
+      const bVal = b[sortField] as string | number;
       
       if (sortDirection === 'asc') {
         return aVal > bVal ? 1 : -1;
@@ -82,7 +67,7 @@ const DataManagement: React.FC = () => {
 
   useEffect(() => {
     trackAction('data-management-loaded');
-  }, []);
+  }, [trackAction]);
 
   const getModelFields = (model: string): string => {
     const commonFields = 'id createdAt updatedAt';
@@ -92,6 +77,8 @@ const DataManagement: React.FC = () => {
         return `${commonFields} userId name email role bio`;
       case 'Post':
         return `${commonFields} title content userId published`;
+      case 'Comment':
+        return `${commonFields} content postId userId`;
       case 'Setting':
         return `${commonFields} type key value entityId description isActive`;
       case 'Log':
@@ -129,7 +116,7 @@ const DataManagement: React.FC = () => {
     } catch (error) {
       trackError('failed-to-load-model-data', { 
         model: selectedModel, 
-        error: error.message 
+        error: (error as Error).message 
       });
     }
   };
@@ -178,7 +165,7 @@ const DataManagement: React.FC = () => {
         count: data.length 
       });
     } catch (error) {
-      trackError('export-failed', { error: error.message });
+      trackError('export-failed', { error: (error as Error).message });
     }
   };
 
@@ -186,7 +173,7 @@ const DataManagement: React.FC = () => {
     if (allSelected) {
       setSelectedRecords([]);
     } else {
-      setSelectedRecords(paginatedRecords.map(record => record.id));
+      setSelectedRecords(paginatedRecords.map(record => String(record.id)));
     }
   };
 
@@ -200,14 +187,7 @@ const DataManagement: React.FC = () => {
     trackAction('data-sorted', { field, direction: sortDirection });
   };
 
-  const editRecord = (record: any) => {
-    setEditingRecord(record);
-    setFormData({ ...record });
-    setShowEditModal(true);
-    trackAction('edit-record-opened', { model: selectedModel, id: record.id });
-  };
-
-  const deleteRecord = async (record: any) => {
+  const deleteRecord = async (record: Record<string, unknown>) => {
     if (!window.confirm(`Are you sure you want to delete this ${selectedModel}?`)) {
       return;
     }
@@ -229,11 +209,11 @@ const DataManagement: React.FC = () => {
       await loadModelData();
       trackAction('record-deleted', { model: selectedModel, id: record.id });
     } catch (error) {
-      trackError('delete-failed', { error: error.message });
+      trackError('delete-failed', { error: (error as Error).message });
     }
   };
 
-  const impersonateUser = async (user: any) => {
+  const impersonateUser = async (user: Record<string, unknown>) => {
     if (!window.confirm(`Impersonate user ${user.name}? This will log you in as this user.`)) {
       return;
     }
@@ -246,7 +226,7 @@ const DataManagement: React.FC = () => {
       
       window.location.href = '/';
     } catch (error) {
-      trackError('impersonation-failed', { error: error.message });
+      trackError('impersonation-failed', { error: (error as Error).message });
     }
   };
 
@@ -290,8 +270,9 @@ const DataManagement: React.FC = () => {
         <div className="model-management">
           <div className="actions-bar">
             <button 
-              onClick={() => setShowCreateModal(true)} 
               className="btn-primary"
+              disabled
+              title="Create functionality not implemented"
             >
               Create New {selectedModel}
             </button>
@@ -314,6 +295,7 @@ const DataManagement: React.FC = () => {
                       type="checkbox" 
                       onChange={toggleSelectAll}
                       checked={allSelected}
+                      aria-label="Select all records"
                     />
                   </th>
                   {modelFields.map(field => (
@@ -329,17 +311,19 @@ const DataManagement: React.FC = () => {
               </thead>
               <tbody>
                 {paginatedRecords.map(record => (
-                  <tr key={record.id}>
+                  <tr key={String(record.id)}>
                     <td>
                       <input 
                         type="checkbox" 
-                        value={record.id}
-                        checked={selectedRecords.includes(record.id)}
+                        value={String(record.id)}
+                        checked={selectedRecords.includes(String(record.id))}
+                        aria-label="Select record"
                         onChange={(e) => {
+                          const recordId = String(record.id);
                           if (e.target.checked) {
-                            setSelectedRecords([...selectedRecords, record.id]);
+                            setSelectedRecords([...selectedRecords, recordId]);
                           } else {
-                            setSelectedRecords(selectedRecords.filter(id => id !== record.id));
+                            setSelectedRecords(selectedRecords.filter(id => id !== recordId));
                           }
                         }}
                       />
@@ -348,22 +332,23 @@ const DataManagement: React.FC = () => {
                       <td key={field}>
                         {field.includes('At') ? (
                           <div className="timestamp">
-                            {formatTimestamp(record[field])}
+                            {formatTimestamp(String(record[field]))}
                           </div>
-                        ) : typeof record[field] === 'object' ? (
+                        ) : typeof record[field] === 'object' && record[field] !== null ? (
                           <details>
                             <summary>Object</summary>
                             <pre>{JSON.stringify(record[field], null, 2)}</pre>
                           </details>
                         ) : (
-                          record[field]
+                          String(record[field] || '')
                         )}
                       </td>
                     ))}
                     <td className="actions">
                       <button 
-                        onClick={() => editRecord(record)} 
                         className="btn-sm btn-secondary"
+                        disabled
+                        title="Edit functionality not implemented"
                       >
                         Edit
                       </button>

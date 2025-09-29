@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { useQuery, useMutation } from '@apollo/client';
-import { GET_POST_SETTINGS, CREATE_SETTING, UPDATE_SETTING } from '../graphql/settings';
+import { useMutation, useQuery } from '@apollo/client';
+import React, { useEffect, useState } from 'react';
+import { CREATE_SETTING, GET_POST_SETTINGS, UPDATE_SETTING } from '../graphql/settings';
 
 interface PostSettingsProps {
   postId: string;
@@ -69,14 +69,14 @@ const PostSettings: React.FC<PostSettingsProps> = ({ postId }) => {
   const [updateSetting] = useMutation(UPDATE_SETTING);
 
   // Load post settings
-  const { data: settingsData, refetch } = useQuery(GET_POST_SETTINGS, {
+  const { refetch } = useQuery(GET_POST_SETTINGS, {
     variables: { entityId: postId },
     skip: !postId,
     onCompleted: (data) => {
       if (data?.listSettings?.items) {
         const settings = data.listSettings.items;
         
-        settings.forEach((setting: any) => {
+        settings.forEach((setting: { id: string; key: string; value: Record<string, unknown> }) => {
           if (setting.key === 'visibility') {
             setVisibilitySettings({ ...visibilitySettings, ...setting.value });
             setSettingIds(prev => ({ ...prev, visibility: setting.id }));
@@ -106,7 +106,7 @@ const PostSettings: React.FC<PostSettingsProps> = ({ postId }) => {
   }, [postId, refetch]);
 
   // Generic save setting function
-  const saveSetting = async (key: string, value: any, successMessage: string) => {
+  const saveSetting = async (key: string, value: Record<string, unknown>, successMessage: string) => {
     try {
       setSaveStatus(null);
 
@@ -156,15 +156,15 @@ const PostSettings: React.FC<PostSettingsProps> = ({ postId }) => {
 
   // Update handlers
   const updateVisibilitySetting = () => {
-    saveSetting('visibility', visibilitySettings, 'Visibility settings updated');
+    saveSetting('visibility', visibilitySettings as unknown as Record<string, unknown>, 'Visibility settings updated');
   };
 
   const updateFormattingSetting = () => {
-    saveSetting('formatting', formattingSettings, 'Formatting settings updated');
+    saveSetting('formatting', formattingSettings as unknown as Record<string, unknown>, 'Formatting settings updated');
   };
 
   const updateSeoSetting = () => {
-    saveSetting('seo', seoSettings, 'SEO settings updated');
+    saveSetting('seo', seoSettings as unknown as Record<string, unknown>, 'SEO settings updated');
   };
 
   if (loading) {
@@ -213,6 +213,7 @@ const PostSettings: React.FC<PostSettingsProps> = ({ postId }) => {
                     setVisibilitySettings({ ...visibilitySettings, isPublic: e.target.checked });
                     setTimeout(updateVisibilitySetting, 100);
                   }}
+                  aria-label="Public post"
                   className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                 />
               </div>
@@ -228,6 +229,7 @@ const PostSettings: React.FC<PostSettingsProps> = ({ postId }) => {
                     setVisibilitySettings({ ...visibilitySettings, allowComments: e.target.checked });
                     setTimeout(updateVisibilitySetting, 100);
                   }}
+                  aria-label="Allow comments"
                   className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                 />
               </div>
@@ -243,6 +245,7 @@ const PostSettings: React.FC<PostSettingsProps> = ({ postId }) => {
                     setVisibilitySettings({ ...visibilitySettings, allowSharing: e.target.checked });
                     setTimeout(updateVisibilitySetting, 100);
                   }}
+                  aria-label="Allow sharing"
                   className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                 />
               </div>
@@ -281,6 +284,7 @@ const PostSettings: React.FC<PostSettingsProps> = ({ postId }) => {
                     setFormattingSettings({ ...formattingSettings, allowMarkdown: e.target.checked });
                     setTimeout(updateFormattingSetting, 100);
                   }}
+                  aria-label="Allow markdown"
                   className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                 />
               </div>
@@ -296,6 +300,7 @@ const PostSettings: React.FC<PostSettingsProps> = ({ postId }) => {
                     setFormattingSettings({ ...formattingSettings, autoLinkUrls: e.target.checked });
                     setTimeout(updateFormattingSetting, 100);
                   }}
+                  aria-label="Auto-link URLS"
                   className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                 />
               </div>
@@ -311,6 +316,7 @@ const PostSettings: React.FC<PostSettingsProps> = ({ postId }) => {
                     setFormattingSettings({ ...formattingSettings, allowImages: e.target.checked });
                     setTimeout(updateFormattingSetting, 100);
                   }}
+                  aria-label="Allow images"
                   className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                 />
               </div>
@@ -325,6 +331,7 @@ const PostSettings: React.FC<PostSettingsProps> = ({ postId }) => {
                   }}
                   min={100} 
                   max={50000}
+                  aria-label="Maximum content length"
                   className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                 />
               </div>
@@ -347,6 +354,7 @@ const PostSettings: React.FC<PostSettingsProps> = ({ postId }) => {
                     setSeoSettings({ ...seoSettings, allowIndexing: e.target.checked });
                     setTimeout(updateSeoSetting, 100);
                   }}
+                  aria-label="Search engine indexing"
                   className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                 />
               </div>
@@ -362,6 +370,7 @@ const PostSettings: React.FC<PostSettingsProps> = ({ postId }) => {
                     setSeoSettings({ ...seoSettings, generateMetaTags: e.target.checked });
                     setTimeout(updateSeoSetting, 100);
                   }}
+                  aria-label="Generate meta tags"
                   className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                 />
               </div>
@@ -377,6 +386,7 @@ const PostSettings: React.FC<PostSettingsProps> = ({ postId }) => {
                     setSeoSettings({ ...seoSettings, socialPreview: e.target.checked });
                     setTimeout(updateSeoSetting, 100);
                   }}
+                  aria-label="Social media preview"
                   className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                 />
               </div>

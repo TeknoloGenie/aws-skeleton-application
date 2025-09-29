@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { useAnalytics } from '../../services/analytics';
-import { apolloClient } from '../../graphql/client';
 import { gql } from '@apollo/client';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { apolloClient } from '../../graphql/client';
+import { useAnalytics } from '../../services/analytics';
 
 interface LogEntry {
   id: string;
@@ -9,7 +9,7 @@ interface LogEntry {
   action: string;
   component: string;
   level: string;
-  metadata?: any;
+  metadata?: Record<string, unknown>;
   createdAt: string;
   user?: {
     id: string;
@@ -17,6 +17,47 @@ interface LogEntry {
     email: string;
   };
 }
+
+const LOGS_QUERY = gql`
+  query GetLogs($limit: Int, $nextToken: String) {
+    listLogs(limit: $limit, nextToken: $nextToken) {
+      items {
+        id
+        userId
+        action
+        component
+        level
+        metadata
+        createdAt
+        user {
+          id
+          name
+          email
+        }
+      }
+      nextToken
+    }
+  }
+`;
+
+const LOGS_SUBSCRIPTION = gql`
+  subscription OnCreateLog {
+    onCreateLog {
+      id
+      userId
+      action
+      component
+      level
+      metadata
+      createdAt
+      user {
+        id
+        name
+        email
+      }
+    }
+  }
+`;
 
 const AnalyticsDashboard: React.FC = () => {
   const { trackAction, trackError } = useAnalytics('analytics-dashboard');
@@ -32,47 +73,6 @@ const AnalyticsDashboard: React.FC = () => {
   });
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 50;
-
-  const LOGS_QUERY = gql`
-    query GetLogs($limit: Int, $nextToken: String) {
-      listLogs(limit: $limit, nextToken: $nextToken) {
-        items {
-          id
-          userId
-          action
-          component
-          level
-          metadata
-          createdAt
-          user {
-            id
-            name
-            email
-          }
-        }
-        nextToken
-      }
-    }
-  `;
-
-  const LOGS_SUBSCRIPTION = gql`
-    subscription OnLogCreated {
-      onCreateLog {
-        id
-        userId
-        action
-        component
-        level
-        metadata
-        createdAt
-        user {
-          id
-          name
-          email
-        }
-      }
-    }
-  `;
 
   const filteredLogs = useMemo(() => {
     let filtered = logs;
@@ -129,45 +129,49 @@ const AnalyticsDashboard: React.FC = () => {
     return [...new Set(logs.map(log => log.action))].sort();
   }, [logs]);
 
+  const loadLogs = useCallback(async () => {
+    try {
+      const observable = apolloClient.watchQuery({
+        query: LOGS_QUERY,
+        fetchPolicy: 'cache-and-network',
+        errorPolicy: "ignore",
+      });
+      observable.subscribe({
+        next(result) {
+          console.log("Result:", result.data);
+          if (result.data?.listLogs?.items) {
+            setLogs(result.data.listLogs.items);
+          }
+        },
+      });
+    } catch (error) {
+      console.error('Failed to load logs:', error);
+      trackError('logs-load-failed', { error: (error as Error).message });
+    }
+  }, [trackError]);
+
+  const setupSubscription = useCallback(() => {
+    const subscription = apolloClient.subscribe({
+      query: LOGS_SUBSCRIPTION
+    }).subscribe({
+      next: ({ data }) => {
+        if (data?.onCreateLog) {
+          setLogs(prev => [data.onCreateLog, ...prev].slice(0, 1000));
+        }
+      },
+      error: (error) => {
+        console.error('Subscription error:', error);
+        trackError('subscription-failed', { error: (error as Error).message });
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [trackError]);
+
   useEffect(() => {
     loadLogs();
     setupSubscription();
-  }, []);
-
-  const loadLogs = async () => {
-    try {
-      const result = await apolloClient.query({
-        query: LOGS_QUERY,
-        variables: { limit: 1000 },
-        fetchPolicy: 'network-only'
-      });
-      
-      setLogs(result.data.listLogs.items);
-      trackAction('logs-loaded', { count: result.data.listLogs.items.length });
-    } catch (error) {
-      trackError('failed-to-load-logs', { error: error.message });
-    }
-  };
-
-  const setupSubscription = () => {
-    try {
-      const subscription = apolloClient.subscribe({
-        query: LOGS_SUBSCRIPTION
-      }).subscribe({
-        next: ({ data }) => {
-          setLogs(prevLogs => [data.onCreateLog, ...prevLogs]);
-          trackAction('real-time-log-received');
-        },
-        error: (error) => {
-          trackError('subscription-error', { error: error.message });
-        }
-      });
-
-      return () => subscription.unsubscribe();
-    } catch (error) {
-      trackError('failed-to-setup-subscription', { error: error.message });
-    }
-  };
+  }, [loadLogs, setupSubscription]);
 
   const clearFilters = () => {
     setFilters({
@@ -208,7 +212,7 @@ const AnalyticsDashboard: React.FC = () => {
 
       trackAction('logs-exported', { count: csvData.length });
     } catch (error) {
-      trackError('export-failed', { error: error.message });
+      trackError('export-failed', { error: (error as Error).message });
     }
   };
 
@@ -260,14 +264,16 @@ const AnalyticsDashboard: React.FC = () => {
           <input 
             value={filters.dateFrom}
             onChange={(e) => setFilters({...filters, dateFrom: e.target.value})}
-            type="datetime-local" 
+            type="datetime-local"
+            aria-label="Date from"
             className="date-input"
           />
           
           <input 
             value={filters.dateTo}
             onChange={(e) => setFilters({...filters, dateTo: e.target.value})}
-            type="datetime-local" 
+            type="datetime-local"
+            aria-label="Date to"
             className="date-input"
           />
 
