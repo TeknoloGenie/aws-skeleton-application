@@ -167,7 +167,7 @@ export class AppConfigurationComponent implements OnInit {
     return changed;
   }
 
-  get changedSettings(): Array<{key: string, value: any}> {
+  get changedSettings(): {key: string, value: any}[] {
     const changed = this.getChangedSettings();
     return Object.entries(changed).map(([key, value]) => ({ key, value }));
   }

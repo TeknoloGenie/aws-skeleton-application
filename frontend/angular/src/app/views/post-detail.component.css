@@ -1,0 +1,89 @@
+.card {
+  @apply bg-white rounded-lg shadow-sm border border-gray-200 p-6;
+}
+
+.prose {
+  @apply text-gray-700 leading-relaxed;
+}
+
+/* Custom scrollbar for textareas */
+textarea::-webkit-scrollbar {
+  width: 8px;
+}
+
+textarea::-webkit-scrollbar-track {
+  @apply bg-gray-100 rounded;
+}
+
+textarea::-webkit-scrollbar-thumb {
+  @apply bg-gray-300 rounded;
+}
+
+textarea::-webkit-scrollbar-thumb:hover {
+  @apply bg-gray-400;
+}
+
+/* Focus states */
+textarea:focus {
+  @apply ring-2 ring-primary-500 ring-opacity-50;
+}
+
+button:focus {
+  @apply outline-none ring-2 ring-primary-500 ring-opacity-50;
+}
+
+/* Animation for loading spinner */
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+/* Hover effects */
+.hover\:text-primary-700:hover {
+  color: rgb(29 78 216);
+}
+
+.hover\:text-gray-600:hover {
+  color: rgb(75 85 99);
+}
+
+.hover\:text-gray-800:hover {
+  color: rgb(31 41 55);
+}
+
+.hover\:text-red-600:hover {
+  color: rgb(220 38 38);
+}
+
+.hover\:bg-primary-700:hover {
+  background-color: rgb(29 78 216);
+}
+
+/* Disabled states */
+.disabled\:opacity-50:disabled {
+  opacity: 0.5;
+}
+
+.disabled\:cursor-not-allowed:disabled {
+  cursor: not-allowed;
+}
+
+/* Responsive design */
+@media (max-width: 640px) {
+  .card {
+    @apply p-4;
+  }
+  
+  .space-x-3 > * + * {
+    margin-left: 0.5rem;
+  }
+  
+  .space-x-2 > * + * {
+    margin-left: 0.25rem;
+  }
+}

@@ -250,7 +250,7 @@ export class UserSettingsComponent implements OnInit {
   };
 
   // Store setting IDs for updates
-  settingIds: {[key: string]: string | null} = {
+  settingIds: Record<string, string | null> = {
     theme: null,
     notifications: null,
     privacy: null

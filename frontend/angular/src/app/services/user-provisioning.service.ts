@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { BehaviorSubject, Observable, of } from 'rxjs';
+import { BehaviorSubject, Observable } from 'rxjs';
 import { catchError, switchMap, tap } from 'rxjs/operators';
 import { Apollo, gql } from 'apollo-angular';
 

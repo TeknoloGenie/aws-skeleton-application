@@ -91,6 +91,11 @@ export const routes: Routes = [
     canActivate: [authGuard]
   },
   { 
+    path: 'posts/:id', 
+    loadComponent: () => import('./views/post-detail.component').then(m => m.PostDetailComponent),
+    canActivate: [authGuard]
+  },
+  { 
     path: 'admin', 
     loadComponent: () => import('./views/admin/admin-dashboard.component').then(m => m.AdminDashboardComponent),
     canActivate: [adminGuard]

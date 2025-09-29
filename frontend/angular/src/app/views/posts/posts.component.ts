@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { RouterModule } from '@angular/router';
 import { GraphQLClientService } from '../../graphql/client';
 import { listPosts, createPost, updatePost, deletePost } from '../../graphql/queries';
 
@@ -28,7 +29,7 @@ interface PostForm {
 @Component({
   selector: 'app-posts',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, RouterModule],
   template: `
     <div class="min-h-screen bg-gray-50 py-8">
       <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -103,6 +104,16 @@ interface PostForm {
               </div>
               
               <div class="ml-4 flex-shrink-0 flex space-x-2">
+                <a 
+                  [routerLink]="['/posts', post.id]"
+                  class="inline-flex items-center px-3 py-1 border border-transparent text-sm font-medium rounded-md text-primary-600 bg-primary-50 hover:bg-primary-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+                >
+                  <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                  </svg>
+                  View Post
+                </a>
                 <button 
                   (click)="openEditDialog(post)"
                   class="text-blue-600 hover:text-blue-900 text-sm font-medium"

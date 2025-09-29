@@ -12,7 +12,7 @@ import { GraphQLClientService } from '../../graphql/client';
   styleUrls: ['./data-management.component.css']
 })
 export class DataManagementComponent implements OnInit {
-  availableModels = ['User', 'Post', 'Setting', 'Log'];
+  availableModels = ['User', 'Post', 'Comment', 'Setting', 'Log'];
   selectedModel = '';
   modelData: any[] = [];
   searchQuery = '';
@@ -86,6 +86,8 @@ export class DataManagementComponent implements OnInit {
         return `${commonFields} userId cognitoId name email bio role`;
       case 'Post':
         return `${commonFields} title content userId published user { id name email }`;
+      case 'Comment':
+        return `${commonFields} content postId userId user { id name email } post { id title }`;
       case 'Setting':
         return `${commonFields} key value category description userId`;
       case 'Log':

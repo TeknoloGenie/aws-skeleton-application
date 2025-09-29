@@ -256,7 +256,7 @@ export class PostSettingsComponent implements OnInit, OnChanges {
   };
 
   // Store setting IDs for updates
-  settingIds: {[key: string]: string | null} = {
+  settingIds: Record<string, string | null> = {
     visibility: null,
     formatting: null,
     seo: null
