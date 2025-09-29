@@ -1,6 +1,6 @@
 # Chat Rules - Conversation Management and Workflow Classification
 
-**CONVERSATION INITIALIZATION**: Every conversation must begin with workflow classification
+**CONVERSATION INITIALIZATION**: Only at the start of NEW conversations, ask workflow classification
 - Ask: "What type of work are we doing today?"
   - **Task** - Development work
   - **QA Finding** - Bug report/issue
