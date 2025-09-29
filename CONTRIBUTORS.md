@@ -2,6 +2,8 @@
 
 Thank you to all the people who have contributed to the AWS Application Accelerator Framework!
 
+(list of contributers githubs, sadly none yet 😢)
+
 ## 🏆 Core Contributors
 
 ### Project Creator & Lead Maintainer
