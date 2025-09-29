@@ -11,6 +11,7 @@ import Home from './views/Home.vue'
 import Dashboard from './views/Dashboard.vue'
 import Users from './views/Users.vue'
 import Posts from './views/Posts.vue'
+import PostDetail from './views/PostDetail.vue'
 import Login from './views/Login.vue'
 import AdminDashboard from './views/admin/AdminDashboard.vue'
 
@@ -58,6 +59,7 @@ const routes = [
   { path: '/dashboard', component: Dashboard, meta: { requiresAuth: true } },
   { path: '/users', component: Users, meta: { requiresAuth: true } },
   { path: '/posts', component: Posts, meta: { requiresAuth: true } },
+  { path: '/posts/:id', component: PostDetail, meta: { requiresAuth: true } },
   { path: '/admin', component: AdminDashboard, meta: { requiresAuth: true, requiresAdmin: true } }
 ]
 
@@ -76,7 +78,12 @@ router.beforeEach(async (to, from, next) => {
         if (to.meta.requiresAdmin) {
           const idToken = session.tokens.idToken;
           const groups = idToken?.payload['cognito:groups'] || [];
-          if (!groups.includes('admins')) {
+          const groupsArray = Array.isArray(groups) 
+            ? groups.filter((g): g is string => typeof g === 'string')
+            : typeof groups === 'string' 
+              ? [groups] 
+              : [];
+          if (!groupsArray.includes('admins')) {
             next('/dashboard'); // Redirect non-admins to regular dashboard
             return;
           }

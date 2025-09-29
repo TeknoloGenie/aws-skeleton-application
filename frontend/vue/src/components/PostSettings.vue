@@ -190,6 +190,17 @@ import { ref, reactive, onMounted, watch } from 'vue';
 import { useQuery, useMutation } from '@vue/apollo-composable';
 import { GET_POST_SETTINGS, CREATE_SETTING, UPDATE_SETTING } from '../graphql/settings';
 
+interface SaveStatus {
+  type: string;
+  message: string;
+}
+
+interface SettingsData {
+  visibility: null | any;
+  formatting: null | any;
+  seo: null | any;
+}
+
 // Props
 const props = defineProps<{
   postId: string;
@@ -197,8 +208,22 @@ const props = defineProps<{
 
 // Reactive data
 const loading = ref(true);
-const error = ref(null);
-const saveStatus = ref(null);
+const error = ref<SaveStatus | null>(null);
+const saveStatus = ref<SaveStatus | null>(null);
+
+// Settings data structure
+const settingsData: SettingsData = reactive({
+  visibility: null,
+  formatting: null,
+  seo: null
+});
+
+// Store setting IDs for updates
+const settingIds: Record<string, string | null> = reactive({
+  visibility: null,
+  formatting: null,
+  seo: null
+});
 
 // Settings data
 const visibilitySettings = reactive({
@@ -219,13 +244,6 @@ const seoSettings = reactive({
   allowIndexing: true,
   generateMetaTags: true,
   socialPreview: true
-});
-
-// Store setting IDs for updates
-const settingIds = reactive({
-  visibility: null,
-  formatting: null,
-  seo: null
 });
 
 // GraphQL mutations

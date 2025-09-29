@@ -179,16 +179,34 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, computed } from 'vue';
+import { ref, reactive, onMounted } from 'vue';
 import { useQuery, useMutation } from '@vue/apollo-composable';
 import { GET_USER_SETTINGS, CREATE_SETTING, UPDATE_SETTING } from '../graphql/settings';
-import { getCurrentUser } from 'aws-amplify/auth';
+import { getCurrentUser, type AuthUser } from 'aws-amplify/auth';
+
+interface SaveStatus {
+  type: string;
+  message: string;
+}
+
+interface SettingsData {
+  theme: null | any;
+  notifications: null | any;
+  privacy: null | any;
+}
 
 // Reactive data
 const loading = ref(true);
-const error = ref(null);
-const saveStatus = ref(null);
-const currentUser = ref(null);
+const error = ref<SaveStatus | null>(null);
+const saveStatus = ref<SaveStatus | null>(null);
+const currentUser = ref<AuthUser | null>(null);
+
+// Settings data structure
+const settingsData: SettingsData = reactive({
+  theme: null,
+  notifications: null,
+  privacy: null
+});
 
 // Settings data
 const themeSettings = reactive({
@@ -212,7 +230,7 @@ const privacySettings = reactive({
 });
 
 // Store setting IDs for updates
-const settingIds = reactive({
+const settingIds: Record<string, string | null> = reactive({
   theme: null,
   notifications: null,
   privacy: null

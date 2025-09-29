@@ -38,7 +38,7 @@ import AppConfiguration from './AppConfiguration.vue';
 const { trackAction, trackError } = useAnalytics('admin-dashboard');
 
 const activeTab = ref('analytics');
-const currentUser = ref(null);
+const currentUser = ref<any>(null);
 
 const tabs = [
   { id: 'analytics', label: '📊 Analytics' },

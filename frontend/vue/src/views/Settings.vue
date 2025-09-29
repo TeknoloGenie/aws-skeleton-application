@@ -135,12 +135,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue';
+import { ref, onMounted } from 'vue';
 import { useQuery } from '@vue/apollo-composable';
-import { getCurrentUser } from 'aws-amplify/auth';
+import { getCurrentUser, type AuthUser } from 'aws-amplify/auth';
 import UserSettings from '../components/UserSettings.vue';
 import PostSettings from '../components/PostSettings.vue';
-import { LIST_POSTS } from '../graphql/queries';
+import { listPosts } from '../graphql/queries';
 
 // Tab configuration
 const tabs = [
@@ -164,8 +164,8 @@ const tabs = [
 // Reactive data
 const activeTab = ref('user');
 const selectedPostId = ref('');
-const currentUser = ref(null);
-const userPosts = ref([]);
+const currentUser = ref<AuthUser | null>(null);
+const userPosts = ref<any[]>([]);
 
 // Load user data and posts
 const loadUserData = async () => {
@@ -175,7 +175,7 @@ const loadUserData = async () => {
     currentUser.value = user;
 
     // Load user's posts
-    const { result } = await useQuery(LIST_POSTS, {
+    const { result } = await useQuery(listPosts, {
       filter: {
         userId: { eq: user.userId }
       }

@@ -185,7 +185,7 @@ import { gql } from '@apollo/client/core';
 
 const { trackAction, trackError } = useAnalytics('data-management');
 
-const availableModels = ['User', 'Post', 'Setting', 'Log'];
+const availableModels = ['User', 'Post', 'Comment', 'Setting', 'Log'];
 const selectedModel = ref('');
 const modelData = ref([]);
 const searchQuery = ref('');
@@ -305,6 +305,8 @@ const getModelFields = (model: string) => {
       return `${commonFields} userId name email role bio`;
     case 'Post':
       return `${commonFields} title content userId published`;
+    case 'Comment':
+      return `${commonFields} content postId userId`;
     case 'Setting':
       return `${commonFields} type key value entityId description isActive`;
     case 'Log':
